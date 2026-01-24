@@ -1,24 +1,24 @@
 body {
   font-family: Arial;
-  background:#0f172a;
-  color:white;
-  padding:15px;
+  background: #0f172a;
+  color: white;
+  padding: 15px;
 }
 
-select,button {
-  width:100%;
-  padding:10px;
-  margin:8px 0;
-  font-size:16px;
+select, button {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  font-size: 16px;
 }
 
 .match {
-  background:#1e293b;
-  padding:10px;
-  margin:8px 0;
-  border-radius:8px;
+  background: #1e293b;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 8px;
 }
 
-.green{color:#22c55e}
-.yellow{color:#facc15}
-.red{color:#ef4444}
+.green { color: #22c55e; }
+.yellow { color: #facc15; }
+.red { color: #ef4444; }
