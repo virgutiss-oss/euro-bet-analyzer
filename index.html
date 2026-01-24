@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html lang="lt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Euro Bet Analyzer</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Euro Bet Analyzer</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h2>⚽ Euro Bet Analyzer</h2>
+<h2>⚽ Europos futbolo analizė</h2>
 
 <select id="league"></select>
 
 <select id="market">
-  <option value="dc">Double Chance (1X)</option>
+  <option value="dc">Double Chance</option>
   <option value="ou">Over 2.5</option>
   <option value="btts">BTTS</option>
 </select>
@@ -22,7 +21,9 @@
 
 <div id="matches"></div>
 
+<script src="config.js"></script>
 <script src="logic.js"></script>
 <script src="app.js"></script>
+
 </body>
 </html>
