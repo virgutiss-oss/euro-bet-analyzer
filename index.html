@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sporto analizė</title>
+  <title>Sporto statymų analizė</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="app">
-  <h1>📊 Sporto analizė</h1>
+  <h1>📊 Sporto statymų analizė</h1>
 
   <!-- SPORTAS -->
+  <label>Sportas</label>
   <select id="sport">
     <option value="football">⚽ Futbolas</option>
     <option value="basketball">🏀 Krepšinis</option>
@@ -19,18 +20,26 @@
     <option value="tennis">🎾 Tenisas</option>
   </select>
 
+  <!-- LYGA -->
+  <label>Lyga</label>
+  <select id="league"></select>
+
   <!-- RINKA -->
+  <label>Rinka</label>
   <select id="market">
     <option value="win">Win / Lose</option>
     <option value="over">Over</option>
     <option value="under">Under</option>
   </select>
 
-  <!-- LINIJA -->
-  <input id="line" type="number" placeholder="Linija (pvz. 2.5)" />
+  <!-- OVER / UNDER LINIJA -->
+  <label>Linija</label>
+  <select id="line"></select>
 
+  <!-- MYGTUKAS -->
   <button onclick="analyze()">Analizuoti</button>
 
+  <!-- REZULTATAI -->
   <div id="results" class="results"></div>
 </div>
 
