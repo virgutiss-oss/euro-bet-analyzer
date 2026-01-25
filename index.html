@@ -34,13 +34,8 @@ button {
   border-radius:10px;
   margin-top:10px;
 }
-.value {
-  color:#22c55e;
-  font-weight:bold;
-}
-.bad {
-  color:#ef4444;
-}
+.good { color:#22c55e; }
+.warn { color:#facc15; }
 </style>
 </head>
 
@@ -53,8 +48,7 @@ button {
 
 <select id="market">
   <option value="win">Win / Lose</option>
-  <option value="over">Over</option>
-  <option value="under">Under</option>
+  <option value="totals">Over / Under (BEST)</option>
 </select>
 
 <button onclick="analyze()">ANALIZUOTI</button>
