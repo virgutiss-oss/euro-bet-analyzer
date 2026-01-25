@@ -30,9 +30,37 @@ export default async function handler(req,res){
       const t = bm.markets.find(m=>m.key==="totals");
       if(!t) return;
 
-      const pick = t.outcomes.find(o=>o.name.toLowerCase()===market);
-      const implied = 1/pick.price;
-      const value = (implied-0.52)*100;
+      const over = t.outcomes.find(o => o.name === "Over");
+const under = t.outcomes.find(o => o.name === "Under");
+
+const pOver = 1 / over.price;
+const pUnder = 1 / under.price;
+const margin = pOver + pUnder;
+
+const fairOver = pOver / margin;
+const fairUnder = pUnder / margin;
+
+// pasirenkam TIK GERESNĮ
+let pick, value;
+
+if (fairOver > fairUnder) {
+  pick = over;
+  value = ((fairOver * over.price) - 1) * 100;
+} else {
+  pick = under;
+  value = ((fairUnder * under.price) - 1) * 100;
+}
+
+// RODOM TIK JEI YRA REALUS VALUE
+if (value > 1) {
+  out.push({
+    match: `${g.home_team} vs ${g.away_team}`,
+    pick: `${pick.name} ${pick.point}`,
+    odds: pick.price,
+    value: value.toFixed(1),
+    form: fairOver > 0.55 || fairUnder > 0.55 ? "🔥 Stiprus edge" : "⚠ Silpnas edge"
+  });
+}
 
       out.push({
         match:`${g.home_team} vs ${g.away_team}`,
