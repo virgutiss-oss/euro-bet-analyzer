@@ -1,34 +1,39 @@
 <!DOCTYPE html>
 <html lang="lt">
 <head>
-  <meta charset="UTF-8">
-  <title>Euro Bet Analyzer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sporto analizė</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="app">
-  <h1>⚽ Europos futbolo analizė</h1>
+  <h1>📊 Sporto analizė</h1>
 
-  <div class="controls">
-    <select id="league"></select>
+  <!-- SPORTAS -->
+  <select id="sport">
+    <option value="football">⚽ Futbolas</option>
+    <option value="basketball">🏀 Krepšinis</option>
+    <option value="hockey">🏒 Ledo ritulys</option>
+    <option value="tennis">🎾 Tenisas</option>
+  </select>
 
-    <select id="market">
-      <option value="dc">Double Chance</option>
-      <option value="ou">Over 2.5</option>
-      <option value="btts">BTTS</option>
-    </select>
+  <!-- RINKA -->
+  <select id="market">
+    <option value="win">Win / Lose</option>
+    <option value="over">Over</option>
+    <option value="under">Under</option>
+  </select>
 
-    <button onclick="loadMatches()">Analizuoti</button>
-  </div>
+  <!-- LINIJA -->
+  <input id="line" type="number" placeholder="Linija (pvz. 2.5)" />
 
-  <div id="matches" class="matches"></div>
+  <button onclick="analyze()">Analizuoti</button>
+
+  <div id="results" class="results"></div>
 </div>
 
-<script src="config.js"></script>
-<script src="logic.js"></script>
 <script src="app.js"></script>
-
 </body>
 </html>
