@@ -1,80 +1,64 @@
 const leagues = {
   football: [
-    "Premier League",
-    "La Liga",
-    "Serie A",
-    "Bundesliga",
-    "Ligue 1",
-    "Champions League",
-    "Europa League"
+    { name: "Premier League", key: "soccer_epl" },
+    { name: "La Liga", key: "soccer_spain_la_liga" },
+    { name: "Serie A", key: "soccer_italy_serie_a" },
+    { name: "Bundesliga", key: "soccer_germany_bundesliga" },
+    { name: "Ligue 1", key: "soccer_france_ligue_one" },
+    { name: "Champions League", key: "soccer_uefa_champs_league" },
+    { name: "Europa League", key: "soccer_uefa_europa_league" }
   ],
   basketball: [
-    "NBA",
-    "EuroLeague",
-    "ACB",
-    "LKL"
+    { name: "NBA", key: "basketball_nba" },
+    { name: "EuroLeague", key: "basketball_euroleague" }
   ],
   hockey: [
-    "NHL",
-    "KHL",
-    "SHL",
-    "Liiga"
+    { name: "NHL", key: "icehockey_nhl" }
   ],
   tennis: [
-    "ATP",
-    "WTA"
+    { name: "ATP", key: "tennis_atp" },
+    { name: "WTA", key: "tennis_wta" }
   ]
 };
-
-const overUnderLines = {
-  football: [0.5, 1.5, 2.5, 3.5],
-  basketball: [160.5, 170.5, 180.5, 190.5],
-  hockey: [3.5, 4.5, 5.5, 6.5],
-  tennis: [18.5, 20.5, 22.5]
-};
-
-function updateOptions() {
-  const sport = document.getElementById("sport").value;
-  const leagueSelect = document.getElementById("league");
-  const lineSelect = document.getElementById("line");
-
-  leagueSelect.innerHTML = leagues[sport]
-    .map(l => `<option value="${l}">${l}</option>`)
-    .join("");
-
-  lineSelect.innerHTML = overUnderLines[sport]
-    .map(l => `<option value="${l}">${l}</option>`)
-    .join("");
-}
-
-async function analyze() {
-  const sport = sportSelect.value;
-  const league = leagueSelect.value;
-  const market = marketSelect.value;
-  const line = lineSelect.value;
-  const box = document.getElementById("results");
-
-  box.innerHTML = "⏳ Analizuojama...";
-
-  const res = await fetch(
-    `/api/sports?sport=${sport}&league=${league}&market=${market}&line=${line}`
-  );
-
-  const data = await res.json();
-
-  box.innerHTML = data.map(m => `
-    <div class="card">
-      <strong>${m.match}</strong><br>
-      Lyga: ${league}<br>
-      Pasirinkimas: <b>${m.pick}</b>
-    </div>
-  `).join("");
-}
 
 const sportSelect = document.getElementById("sport");
 const leagueSelect = document.getElementById("league");
 const marketSelect = document.getElementById("market");
 const lineSelect = document.getElementById("line");
 
-sportSelect.addEventListener("change", updateOptions);
-updateOptions();
+function updateLeagues() {
+  const sport = sportSelect.value;
+  leagueSelect.innerHTML = leagues[sport]
+    .map(l => `<option value="${l.key}">${l.name}</option>`)
+    .join("");
+}
+
+sportSelect.addEventListener("change", updateLeagues);
+updateLeagues();
+
+async function analyze() {
+  const sport = sportSelect.value;
+  const league = leagueSelect.value;
+  const market = marketSelect.value;
+  const box = document.getElementById("results");
+
+  box.innerHTML = "⏳ Kraunama...";
+
+  const res = await fetch(
+    `/api/sports?sport=${sport}&league=${league}&market=${market}`
+  );
+
+  const data = await res.json();
+
+  if (!data.length) {
+    box.innerHTML = "❌ Nėra duomenų";
+    return;
+  }
+
+  box.innerHTML = data.map(m => `
+    <div class="card">
+      <b>${m.match}</b><br>
+      ${m.pick}
+    </div>
+  `).join("");
+}
