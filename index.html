@@ -1,47 +1,54 @@
 <!DOCTYPE html>
 <html lang="lt">
 <head>
-  <meta charset="UTF-8" />
-  <title>Sports Odds Analyzer</title>
-  <style>
-    body {
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-      margin: 0;
-      padding: 20px;
-    }
-    select, button {
-      padding: 10px;
-      margin: 5px 0;
-      width: 100%;
-      border-radius: 8px;
-      border: none;
-    }
-    button {
-      background: #22c55e;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .card {
-      background: #1e293b;
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 10px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bet Analyzer</title>
+
+<style>
+body {
+  background:#0f172a;
+  font-family: system-ui;
+  color:white;
+  margin:0;
+}
+.container {
+  max-width:420px;
+  margin:auto;
+  padding:15px;
+}
+select, button {
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border-radius:10px;
+  border:none;
+}
+button {
+  background:#22c55e;
+  font-weight:700;
+}
+.card {
+  background:#1e293b;
+  padding:12px;
+  border-radius:10px;
+  margin-top:10px;
+}
+.value {
+  color:#22c55e;
+  font-weight:bold;
+}
+.bad {
+  color:#ef4444;
+}
+</style>
 </head>
+
 <body>
+<div class="container">
+<h3>📊 Betting Analyzer</h3>
 
-<h2>📊 Sports Betting Analyzer</h2>
-
-<select id="sport">
-  <option value="football">⚽ Futbolas</option>
-  <option value="basketball">🏀 Krepšinis</option>
-  <option value="hockey">🏒 Ledo ritulys</option>
-  <option value="tennis">🎾 Tenisas</option>
-</select>
-
+<select id="sport"></select>
 <select id="league"></select>
 
 <select id="market">
@@ -53,6 +60,7 @@
 <button onclick="analyze()">ANALIZUOTI</button>
 
 <div id="results"></div>
+</div>
 
 <script src="app.js"></script>
 </body>
