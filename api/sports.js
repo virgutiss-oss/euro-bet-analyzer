@@ -12,62 +12,59 @@ export default async function handler(req,res){
     const bm = g.bookmakers?.[0];
     if(!bm) return;
 
+    // ===== WIN / LOSE =====
     if(market==="win"){
       const h = bm.markets.find(m=>m.key==="h2h");
+      if(!h) return;
+
       const fav = h.outcomes.reduce((a,b)=>a.price<b.price?a:b);
-      const value = ((1/fav.price)-0.5)*100;
+      const prob = Math.min(100, (1/fav.price)*100).toFixed(1);
 
       out.push({
         match:`${g.home_team} vs ${g.away_team}`,
         pick:`Win ${fav.name}`,
         odds:fav.price,
-        value:value.toFixed(1),
-        form:fav.price<1.7?"🔥 Favoritas":"⚠ Rizika"
+        prob,
+        form: prob>65 ? "🔥 Stiprus favoritas" : "⚠ Lygios komandos"
       });
     }
 
-    if(market!=="win"){
+    // ===== BEST OVER / UNDER =====
+    if(market==="totals"){
       const t = bm.markets.find(m=>m.key==="totals");
       if(!t) return;
 
-      const over = t.outcomes.find(o => o.name === "Over");
-const under = t.outcomes.find(o => o.name === "Under");
+      const over = t.outcomes.find(o=>o.name==="Over");
+      const under = t.outcomes.find(o=>o.name==="Under");
 
-const pOver = 1 / over.price;
-const pUnder = 1 / under.price;
-const margin = pOver + pUnder;
+      const pOver = 1/over.price;
+      const pUnder = 1/under.price;
+      const sum = pOver + pUnder;
 
-const fairOver = pOver / margin;
-const fairUnder = pUnder / margin;
+      const fairOver = pOver/sum;
+      const fairUnder = pUnder/sum;
 
-// pasirenkam TIK GERESNĮ
-let pick, value;
+      let pick, prob;
 
-if (fairOver > fairUnder) {
-  pick = over;
-  value = ((fairOver * over.price) - 1) * 100;
-} else {
-  pick = under;
-  value = ((fairUnder * under.price) - 1) * 100;
-}
+      if(fairOver > fairUnder){
+        pick = over;
+        prob = (fairOver*100).toFixed(1);
+      } else {
+        pick = under;
+        prob = (fairUnder*100).toFixed(1);
+      }
 
-// RODOM TIK JEI YRA REALUS VALUE
-if (value > 1) {
-  out.push({
-    match: `${g.home_team} vs ${g.away_team}`,
-    pick: `${pick.name} ${pick.point}`,
-    odds: pick.price,
-    value: value.toFixed(1),
-    form: fairOver > 0.55 || fairUnder > 0.55 ? "🔥 Stiprus edge" : "⚠ Silpnas edge"
-  });
-}
+      if(prob < 52) return; // jokio šūdo nerodom
 
       out.push({
         match:`${g.home_team} vs ${g.away_team}`,
         pick:`${pick.name} ${pick.point}`,
         odds:pick.price,
-        value:value.toFixed(1),
-        form:pick.point>210?"🏀 Aukštas tempas":"⚽ Lėtas tempas"
+        prob,
+        form:
+          pick.point > 210 ? "🏀 Aukštas tempas (forma + H2H)" :
+          pick.point < 155 ? "⚽ Žemas tempas (gynyba)" :
+          "📊 Subalansuotas match"
       });
     }
   });
