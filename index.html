@@ -2,46 +2,57 @@
 <html lang="lt">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sporto statymų analizė</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Sports Odds Analyzer</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+    select, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border-radius: 8px;
+      border: none;
+    }
+    button {
+      background: #22c55e;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .card {
+      background: #1e293b;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
 
-<div class="app">
-  <h1>📊 Sporto statymų analizė</h1>
+<h2>📊 Sports Betting Analyzer</h2>
 
-  <!-- SPORTAS -->
-  <label>Sportas</label>
-  <select id="sport">
-    <option value="football">⚽ Futbolas</option>
-    <option value="basketball">🏀 Krepšinis</option>
-    <option value="hockey">🏒 Ledo ritulys</option>
-    <option value="tennis">🎾 Tenisas</option>
-  </select>
+<select id="sport">
+  <option value="football">⚽ Futbolas</option>
+  <option value="basketball">🏀 Krepšinis</option>
+  <option value="hockey">🏒 Ledo ritulys</option>
+  <option value="tennis">🎾 Tenisas</option>
+</select>
 
-  <!-- LYGA -->
-  <label>Lyga</label>
-  <select id="league"></select>
+<select id="league"></select>
 
-  <!-- RINKA -->
-  <label>Rinka</label>
-  <select id="market">
-    <option value="win">Win / Lose</option>
-    <option value="over">Over</option>
-    <option value="under">Under</option>
-  </select>
+<select id="market">
+  <option value="win">Win / Lose</option>
+  <option value="over">Over</option>
+  <option value="under">Under</option>
+</select>
 
-  <!-- OVER / UNDER LINIJA -->
-  <label>Linija</label>
-  <select id="line"></select>
+<button onclick="analyze()">ANALIZUOTI</button>
 
-  <!-- MYGTUKAS -->
-  <button onclick="analyze()">Analizuoti</button>
-
-  <!-- REZULTATAI -->
-  <div id="results" class="results"></div>
-</div>
+<div id="results"></div>
 
 <script src="app.js"></script>
 </body>
