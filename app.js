@@ -3,14 +3,10 @@ const leagues = {
     { name: "Premier League", key: "soccer_epl" },
     { name: "La Liga", key: "soccer_spain_la_liga" },
     { name: "Serie A", key: "soccer_italy_serie_a" },
-    { name: "Bundesliga", key: "soccer_germany_bundesliga" },
-    { name: "Ligue 1", key: "soccer_france_ligue_one" },
-    { name: "Champions League", key: "soccer_uefa_champs_league" },
-    { name: "Europa League", key: "soccer_uefa_europa_league" }
+    { name: "Bundesliga", key: "soccer_germany_bundesliga" }
   ],
   basketball: [
-    { name: "NBA", key: "basketball_nba" },
-    { name: "EuroLeague", key: "basketball_euroleague" }
+    { name: "NBA", key: "basketball_nba" }
   ],
   hockey: [
     { name: "NHL", key: "icehockey_nhl" }
@@ -23,31 +19,23 @@ const leagues = {
 
 const sportSelect = document.getElementById("sport");
 const leagueSelect = document.getElementById("league");
-const marketSelect = document.getElementById("market");
-const lineSelect = document.getElementById("line");
 
-function updateLeagues() {
-  const sport = sportSelect.value;
-  leagueSelect.innerHTML = leagues[sport]
+function loadLeagues() {
+  leagueSelect.innerHTML = leagues[sportSelect.value]
     .map(l => `<option value="${l.key}">${l.name}</option>`)
     .join("");
 }
-
-sportSelect.addEventListener("change", updateLeagues);
-updateLeagues();
+sportSelect.addEventListener("change", loadLeagues);
+loadLeagues();
 
 async function analyze() {
-  const sport = sportSelect.value;
   const league = leagueSelect.value;
-  const market = marketSelect.value;
+  const market = document.getElementById("market").value;
   const box = document.getElementById("results");
 
-  box.innerHTML = "⏳ Kraunama...";
+  box.innerHTML = "⏳ Analizuojama...";
 
-  const res = await fetch(
-    `/api/sports?sport=${sport}&league=${league}&market=${market}`
-  );
-
+  const res = await fetch(`/api/sports?league=${league}&market=${market}`);
   const data = await res.json();
 
   if (!data.length) {
@@ -58,7 +46,8 @@ async function analyze() {
   box.innerHTML = data.map(m => `
     <div class="card">
       <b>${m.match}</b><br>
-      ${m.pick}
+      ${m.pick}<br>
+      <small>📈 Odds: ${m.odds}</small>
     </div>
   `).join("");
 }
