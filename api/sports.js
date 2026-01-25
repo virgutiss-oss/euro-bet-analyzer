@@ -7,41 +7,43 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(url);
     const data = await r.json();
+    const out = [];
 
-    const results = [];
-
-    data.slice(0, 8).forEach(match => {
-      const home = match.home_team;
-      const away = match.away_team;
-
-      let pick = "N/A";
+    data.slice(0, 6).forEach(game => {
+      const home = game.home_team;
+      const away = game.away_team;
+      const bookmaker = game.bookmakers?.[0];
+      if (!bookmaker) return;
 
       if (market === "win") {
-        pick = `Win: ${home}`;
+        const h2h = bookmaker.markets.find(m => m.key === "h2h");
+        const fav = h2h.outcomes.reduce((a, b) => a.price < b.price ? a : b);
+        out.push({
+          match: `${home} vs ${away}`,
+          pick: `Win: ${fav.name}`,
+          odds: fav.price
+        });
       }
 
       if (market === "over" || market === "under") {
-        const totals = match.bookmakers?.[0]?.markets?.find(
-          m => m.key === "totals"
-        );
+        const totals = bookmaker.markets.find(m => m.key === "totals");
+        if (!totals) return;
 
-        if (totals) {
-          const line = totals.outcomes[0].point;
-          pick =
-            market === "over"
-              ? `Over ${line}`
-              : `Under ${line}`;
-        }
+        const over = totals.outcomes.find(o => o.name === "Over");
+        const under = totals.outcomes.find(o => o.name === "Under");
+
+        const pick = market === "over" ? over : under;
+
+        out.push({
+          match: `${home} vs ${away}`,
+          pick: `${pick.name} ${pick.point}`,
+          odds: pick.price
+        });
       }
-
-      results.push({
-        match: `${home} vs ${away}`,
-        pick
-      });
     });
 
-    res.status(200).json(results);
-  } catch (e) {
-    res.status(500).json({ error: "API error" });
+    res.status(200).json(out);
+  } catch {
+    res.status(500).json([]);
   }
 }
