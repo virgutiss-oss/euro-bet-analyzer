@@ -1,23 +1,21 @@
-export default async function handler(req, res) {
-  const { sport, market, line } = req.query;
+export default function handler(req, res) {
+  const { sport, league, market, line } = req.query;
 
-  // DEMO logika (vietoj real API – stabilu, kad veiktų)
-  const samples = {
-    football: ["Milan vs Roma", "Arsenal vs Chelsea"],
-    basketball: ["Lakers vs Heat", "Barcelona vs Madrid"],
-    hockey: ["Rangers vs Bruins", "CSKA vs SKA"],
-    tennis: ["Djokovic vs Alcaraz", "Sinner vs Medvedev"]
-  };
+  const matches = [
+    "Team A vs Team B",
+    "Team C vs Team D",
+    "Team E vs Team F"
+  ];
 
-  const response = samples[sport].map(match => ({
-    match,
+  const data = matches.map(m => ({
+    match: m,
     pick:
       market === "win"
-        ? "Namų pergalė"
+        ? "Home Win"
         : market === "over"
-        ? `Over ${line || "X"}`
-        : `Under ${line || "X"}`
+        ? `Over ${line}`
+        : `Under ${line}`
   }));
 
-  res.status(200).json(response);
+  res.status(200).json(data);
 }
