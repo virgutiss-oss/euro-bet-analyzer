@@ -2,7 +2,7 @@
 <html lang="lt">
 <head>
 <meta charset="UTF-8" />
-<title>Sports Analyzer</title>
+<title>Sports Betting Analyzer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
@@ -24,7 +24,6 @@ header {
   gap: 8px;
   padding: 10px;
   justify-content: center;
-  flex-wrap: wrap;
   background: #020617;
 }
 .tabs button {
@@ -78,18 +77,16 @@ header {
 <header>🏆 Sports Betting Analyzer</header>
 
 <div class="tabs">
-  <button class="active" onclick="loadSport('football')">⚽ Futbolas</button>
-  <button onclick="loadSport('basketball')">🏀 Krepšinis</button>
-  <button onclick="loadSport('hockey')">🏒 Ledo ritulys</button>
-  <button onclick="loadSport('tennis')">🎾 Tenisas</button>
+  <button class="active" onclick="loadSport('football', this)">⚽ Futbolas</button>
+  <button onclick="loadSport('basketball', this)">🏀 Krepšinis</button>
 </div>
 
 <div class="container" id="content">Kraunama…</div>
 
 <script>
-async function loadSport(sport) {
+async function loadSport(sport, btn) {
   document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
-  event.target.classList.add("active");
+  btn.classList.add("active");
 
   const el = document.getElementById("content");
   el.innerHTML = "⏳ Analizuojama…";
@@ -106,22 +103,19 @@ async function loadSport(sport) {
   }
 
   games.forEach(g => {
-    const home = g.home_team;
-    const away = g.away_team;
-
     el.innerHTML += `
       <div class="card">
-        <div class="match">${home} vs ${away}</div>
+        <div class="match">${g.home} vs ${g.away}</div>
         <div class="pick">
-          <div>Win / Over / Under (BEST)</div>
-          <div class="badge">65–75%</div>
+          <div>${g.pick}<br>@ ${g.odd}</div>
+          <div class="badge">${g.confidence}</div>
         </div>
       </div>
     `;
   });
 }
 
-loadSport("football");
+loadSport("football", document.querySelector(".tabs button"));
 </script>
 
 </body>
