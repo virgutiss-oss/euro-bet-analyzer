@@ -8,10 +8,15 @@ export default async function handler(req, res) {
       return await r.json();
     };
 
+    const calcValue = (odd, oppOdd) => {
+      const implied = 1 / oppOdd;
+      return ((odd * implied) - 1) * 100;
+    };
+
     const basketballRaw = await fetchSport("basketball_nba");
     const footballRaw = await fetchSport("soccer_epl");
 
-    // 🏀 BASKETBALL – tik TOTALS
+    // 🏀 BASKETBALL – TOTALS VALUE
     const basketball = basketballRaw.map(g => {
       const total = g.bookmakers?.[0]?.markets?.find(m => m.key === "totals");
       if (!total) return null;
@@ -20,58 +25,78 @@ export default async function handler(req, res) {
       const over = total.outcomes.find(o => o.name === "Over");
       const under = total.outcomes.find(o => o.name === "Under");
 
-      const best =
-        over.price > under.price
-          ? { pick: `Over ${point}`, odd: over.price }
-          : { pick: `Under ${point}`, odd: under.price };
+      const overValue = calcValue(over.price, under.price);
+      const underValue = calcValue(under.price, over.price);
+
+      let best = null;
+
+      if (overValue > underValue && overValue > 3) {
+        best = { pick: `Over ${point}`, odd: over.price, value: overValue };
+      } else if (underValue > 3) {
+        best = { pick: `Under ${point}`, odd: under.price, value: underValue };
+      }
+
+      if (!best) return null;
 
       return {
         home: g.home_team,
         away: g.away_team,
         pick: best.pick,
         odd: best.odd,
-        confidence: Math.floor(60 + Math.random() * 15) + "%"
+        confidence: `+${best.value.toFixed(1)}%`
       };
     }).filter(Boolean);
 
-    // ⚽ FOOTBALL – Win arba Totals (BEST)
+    // ⚽ FOOTBALL – WIN or TOTALS VALUE
     const football = footballRaw.map(g => {
-      const h2h = g.bookmakers?.[0]?.markets?.find(m => m.key === "h2h");
-      const totals = g.bookmakers?.[0]?.markets?.find(m => m.key === "totals");
+      let best = null;
 
-      let bestPick = null;
+      const totals = g.bookmakers?.[0]?.markets?.find(m => m.key === "totals");
+      const h2h = g.bookmakers?.[0]?.markets?.find(m => m.key === "h2h");
 
       if (totals) {
         const point = totals.outcomes[0].point;
         const over = totals.outcomes.find(o => o.name === "Over");
         const under = totals.outcomes.find(o => o.name === "Under");
 
-        bestPick =
-          over.price > under.price
-            ? { pick: `Over ${point}`, odd: over.price }
-            : { pick: `Under ${point}`, odd: under.price };
+        const overValue = calcValue(over.price, under.price);
+        const underValue = calcValue(under.price, over.price);
+
+        if (overValue > 3 || underValue > 3) {
+          best =
+            overValue > underValue
+              ? { pick: `Over ${point}`, odd: over.price, value: overValue }
+              : { pick: `Under ${point}`, odd: under.price, value: underValue };
+        }
       }
 
-      if (!bestPick && h2h) {
-        const win = h2h.outcomes.reduce((a, b) => (a.price > b.price ? a : b));
-        bestPick = { pick: win.name + " Win", odd: win.price };
+      if (!best && h2h) {
+        const sorted = [...h2h.outcomes].sort((a, b) => b.price - a.price);
+        const main = sorted[0];
+        const opp = sorted[1];
+
+        const value = calcValue(main.price, opp.price);
+        if (value > 3) {
+          best = {
+            pick: main.name + " Win",
+            odd: main.price,
+            value
+          };
+        }
       }
 
-      if (!bestPick) return null;
+      if (!best) return null;
 
       return {
         home: g.home_team,
         away: g.away_team,
-        pick: bestPick.pick,
-        odd: bestPick.odd,
-        confidence: Math.floor(58 + Math.random() * 17) + "%"
+        pick: best.pick,
+        odd: best.odd,
+        confidence: `+${best.value.toFixed(1)}%`
       };
     }).filter(Boolean);
 
-    res.status(200).json({
-      basketball,
-      football
-    });
+    res.status(200).json({ basketball, football });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
