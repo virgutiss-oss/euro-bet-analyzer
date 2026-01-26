@@ -1,122 +1,23 @@
 <!DOCTYPE html>
 <html lang="lt">
 <head>
-<meta charset="UTF-8" />
-<title>Sports Betting Analyzer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-
-<style>
-body {
-  margin: 0;
-  background: #0f172a;
-  color: #e5e7eb;
-  font-family: Arial, sans-serif;
-}
-header {
-  padding: 14px;
-  background: #020617;
-  text-align: center;
-  font-size: 20px;
-  font-weight: bold;
-}
-.tabs {
-  display: flex;
-  gap: 8px;
-  padding: 10px;
-  justify-content: center;
-  background: #020617;
-}
-.tabs button {
-  background: #1e293b;
-  color: #fff;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 6px;
-}
-.tabs button.active {
-  background: #22c55e;
-  color: #000;
-  font-weight: bold;
-}
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 12px;
-}
-.card {
-  background: #020617;
-  padding: 14px;
-  border-radius: 10px;
-  margin-bottom: 12px;
-}
-.match {
-  font-weight: bold;
-  margin-bottom: 6px;
-}
-.pick {
-  display: flex;
-  justify-content: space-between;
-  background: #020617;
-  border: 1px solid #1e293b;
-  padding: 10px;
-  border-radius: 8px;
-}
-.badge {
-  background: #22c55e;
-  color: #000;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: bold;
-}
-</style>
+  <meta charset="UTF-8" />
+  <title>🏆 Sports Betting Analyzer</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
-<header>🏆 Sports Betting Analyzer</header>
+<h1>🏆 Sports Betting Analyzer</h1>
 
-<div class="tabs">
-  <button class="active" onclick="loadSport('football', this)">⚽ Futbolas</button>
-  <button onclick="loadSport('basketball', this)">🏀 Krepšinis</button>
+<div class="buttons">
+  <button onclick="loadSport('football')">⚽ Futbolas</button>
+  <button onclick="loadSport('basketball')">🏀 Krepšinis</button>
+  <button onclick="loadSport('hockey')">🏒 Ledo ritulys</button>
+  <button onclick="loadSport('tennis')">🎾 Tenisas</button>
 </div>
 
-<div class="container" id="content">Kraunama…</div>
+<div id="content">Pasirink sportą</div>
 
-<script>
-async function loadSport(sport, btn) {
-  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-
-  const el = document.getElementById("content");
-  el.innerHTML = "⏳ Analizuojama…";
-
-  const res = await fetch("/api/odds");
-  const data = await res.json();
-  const games = data[sport];
-
-  el.innerHTML = "";
-
-  if (!games || games.length === 0) {
-    el.innerHTML = "Nėra duomenų";
-    return;
-  }
-
-  games.forEach(g => {
-    el.innerHTML += `
-      <div class="card">
-        <div class="match">${g.home} vs ${g.away}</div>
-        <div class="pick">
-          <div>${g.pick}<br>@ ${g.odd}</div>
-          <div class="badge">${g.confidence}</div>
-        </div>
-      </div>
-    `;
-  });
-}
-
-loadSport("football", document.querySelector(".tabs button"));
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>
