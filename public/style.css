@@ -1,28 +1,21 @@
 body {
-  background: #0b1220;
-  color: white;
   font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
   text-align: center;
 }
 
 .buttons button {
   margin: 5px;
   padding: 10px 15px;
-  border-radius: 8px;
-  border: none;
+  font-size: 16px;
   cursor: pointer;
-  background: #2563eb;
-  color: white;
-}
-
-#results {
-  margin-top: 20px;
 }
 
 .card {
-  background: #111827;
+  background: #1e293b;
   margin: 10px auto;
-  padding: 15px;
-  border-radius: 10px;
+  padding: 10px;
   max-width: 400px;
+  border-radius: 8px;
 }
