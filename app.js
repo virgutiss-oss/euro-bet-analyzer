@@ -1,31 +1,43 @@
-async function loadSport(sport) {
-  const output = document.getElementById("output");
+const output = document.getElementById("output");
+
+async function loadOdds(sport) {
   output.innerHTML = "⏳ Kraunama...";
 
   try {
     const res = await fetch(`/api/odds?sport=${sport}`);
+    if (!res.ok) {
+      throw new Error("API klaida");
+    }
+
     const data = await res.json();
 
-    if (!data.length) {
+    if (!data || data.length === 0) {
       output.innerHTML = "❌ Nėra duomenų";
       return;
     }
 
-    output.innerHTML = "";
-
-    data.forEach(m => {
-      const div = document.createElement("div");
-      div.className = "card";
-      div.innerHTML = `
-        <b>${m.home}</b> vs <b>${m.away}</b><br>
-        Rinka: ${m.market}<br>
-        Pasirinkimas: <b>${m.pick}</b><br>
-        Tikimybė: ${m.probability}%
-      `;
-      output.appendChild(div);
-    });
-
-  } catch (e) {
-    output.innerHTML = "❌ Klaida kraunant duomenis";
+    renderGames(data);
+  } catch (err) {
+    console.error(err);
+    output.innerHTML = "❌ Nepavyko gauti duomenų";
   }
+}
+
+function renderGames(games) {
+  output.innerHTML = "";
+
+  games.forEach(game => {
+    const div = document.createElement("div");
+    div.className = "game";
+
+    div.innerHTML = `
+      <h3>${game.home} vs ${game.away}</h3>
+      <p>📊 Rinka: ${game.market}</p>
+      <p>👉 Pasirinkimas: <b>${game.pick}</b></p>
+      <p>📈 Tikimybė: <b>${game.probability}%</b></p>
+      <hr/>
+    `;
+
+    output.appendChild(div);
+  });
 }
