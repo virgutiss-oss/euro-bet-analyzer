@@ -1,7 +1,6 @@
-export default async function handler(req, res) {
+export default function handler(req, res) {
   const { sport } = req.query;
 
-  // 🔴 laikini testiniai duomenys (be API)
   const data = {
     basketball: [
       {
