@@ -1,54 +1,49 @@
-async function loadSport(sport) {
-  const box = document.getElementById("content");
-  box.innerHTML = "Kraunama…";
+const output = document.getElementById("output");
 
-  const res = await fetch("/api/odds");
-  const data = await res.json();
-  const games = data[sport];
+async function loadOdds(sport) {
+  output.innerHTML = "⏳ Kraunama...";
 
-  if (!games || games.length === 0) {
-    box.innerHTML = "Nėra duomenų";
-    return;
-  }
-
-  box.innerHTML = "";
-
-  games.forEach(game => {
-    const home = game.home_team;
-    const away = game.away_team;
-
-    let bestPick = null;
-
-    if (game.bookmakers?.length) {
-      game.bookmakers.forEach(bm => {
-        bm.markets.forEach(m => {
-          if (m.key === "totals") {
-            const over = m.outcomes.find(o => o.name === "Over");
-            const under = m.outcomes.find(o => o.name === "Under");
-
-            if (over && (!bestPick || over.price > bestPick.price)) {
-              bestPick = { type: "Over", line: over.point, price: over.price };
-            }
-            if (under && (!bestPick || under.price > bestPick.price)) {
-              bestPick = { type: "Under", line: under.point, price: under.price };
-            }
-          }
-        });
-      });
+  try {
+    const res = await fetch(`/api/odds?sport=${sport}`);
+    if (!res.ok) {
+      throw new Error("API klaida");
     }
 
-    if (!bestPick) return;
+    const data = await res.json();
 
-    const confidence = Math.min(80, Math.round((bestPick.price - 1) * 100));
+    if (!data || data.length === 0) {
+      output.innerHTML = "❌ Nėra duomenų";
+      return;
+    }
 
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <div><b>${home}</b> vs <b>${away}</b></div>
-      <div class="pick">BEST: ${bestPick.type} ${bestPick.line} @ ${bestPick.price}</div>
-      <div class="meta">Pasitikėjimas: ${confidence}%</div>
+    renderGames(data);
+  } catch (err) {
+    console.error(err);
+    output.innerHTML = "❌ Nepavyko gauti duomenų";
+  }
+}
+
+function renderGames(games) {
+  output.innerHTML = "";
+
+  games.forEach(game => {
+    const div = document.createElement("div");
+    div.className = "game";
+
+    div.innerHTML = `
+      <h3>${game.home} vs ${game.away}</h3>
+      <p>📊 Rinka: ${game.market}</p>
+      <p>👉 Geriausias: <b>${game.pick}</b></p>
+      <p>📈 Tikimybė: <b>${game.probability}%</b></p>
+      <hr/>
     `;
 
-    box.appendChild(card);
+    output.appendChild(div);
   });
 }
+
+/* Mygtukai */
+document.getElementById("football").onclick = () => loadOdds("soccer");
+document.getElementById("basketball").onclick = () => loadOdds("basketball");
+document.getElementById("hockey").onclick = () => loadOdds("hockey");
+document.getElementById("tennis").onclick = () => loadOdds("tennis");
