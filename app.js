@@ -1,3 +1,4 @@
+console.log("APP JS UŽSIKROVĖ");
 const output = document.getElementById("output");
 
 async function loadOdds(sport) {
