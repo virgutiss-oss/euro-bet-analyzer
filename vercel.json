@@ -1,7 +1,3 @@
-{
-  "functions": {
-    "api/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
-}
+Name: ODDS_API_KEY
+Value: TAVO_API_RAKTAS_IS_THEODDSAPI
+Environment: Production
