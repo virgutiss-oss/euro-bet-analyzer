@@ -1,3 +1,7 @@
-Name: ODDS_API_KEY
-Value: TAVO_API_RAKTAS_IS_THEODDSAPI
-Environment: Production
+{
+  "version": 2,
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ]
+}
