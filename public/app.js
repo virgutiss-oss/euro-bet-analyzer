@@ -1,6 +1,14 @@
 console.log("APP JS UŽSIKROVĖ");
 
 const output = document.getElementById("output");
+const buttons = document.querySelectorAll("button[data-sport]");
+
+buttons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const sport = btn.dataset.sport;
+    loadOdds(sport);
+  });
+});
 
 async function loadOdds(sport) {
   output.innerHTML = "⏳ Kraunama...";
@@ -33,7 +41,7 @@ function renderGames(games) {
     div.innerHTML = `
       <h3>${game.home} vs ${game.away}</h3>
       <p>📊 Rinka: ${game.market}</p>
-      <p>👉 Geriausias: <b>${game.pick}</b></p>
+      <p>👉 Pasirinkimas: <b>${game.pick}</b></p>
       <p>📈 Tikimybė: <b>${game.probability}%</b></p>
     `;
 
