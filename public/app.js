@@ -1,28 +1,26 @@
 async function loadSport(sport) {
-  const results = document.getElementById("results");
-  results.innerHTML = "Kraunama…";
+  const output = document.getElementById("output");
+  output.innerHTML = "Kraunama...";
 
   try {
     const res = await fetch(`/api/odds?sport=${sport}`);
     const data = await res.json();
 
     if (!data.length) {
-      results.innerHTML = "<p>Nėra duomenų</p>";
+      output.innerHTML = "Nėra duomenų";
       return;
     }
 
-    results.innerHTML = "";
+    output.innerHTML = data.map(match => `
+      <div class="card">
+        <b>${match.home}</b> vs <b>${match.away}</b><br>
+        Rinka: ${match.market}<br>
+        Pasirinkimas: <b>${match.pick}</b><br>
+        Tikimybė: ${match.probability}%
+      </div>
+    `).join("");
 
-    data.forEach(game => {
-      results.innerHTML += `
-        <div class="card">
-          <h3>${game.home} vs ${game.away}</h3>
-          <p>${game.market}</p>
-          <strong>${game.pick} (${game.probability}%)</strong>
-        </div>
-      `;
-    });
   } catch (e) {
-    results.innerHTML = "<p>Klaida kraunant duomenis</p>";
+    output.innerHTML = "Klaida kraunant duomenis";
   }
 }
