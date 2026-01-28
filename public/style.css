@@ -1,8 +1,7 @@
 body {
-  font-family: Arial, sans-serif;
   background: #0f172a;
-  color: #e5e7eb;
-  margin: 0;
+  color: white;
+  font-family: Arial, sans-serif;
   padding: 20px;
 }
 
@@ -19,27 +18,22 @@ h1 {
 }
 
 button {
-  padding: 10px 16px;
+  padding: 10px 15px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: #2563eb;
   color: white;
-  cursor: pointer;
   font-size: 16px;
 }
 
-button:hover {
-  background: #1d4ed8;
-}
-
 #output {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 700px;
+  margin: auto;
 }
 
 .game {
   background: #1e293b;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 8px;
 }
