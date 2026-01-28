@@ -1,51 +1,15 @@
 body {
-  background: #0f172a;
-  color: #f8fafc;
-  font-family: system-ui, sans-serif;
-  margin: 0;
-  padding: 16px;
-}
-
-h1 {
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  font-family: Arial, sans-serif;
+  padding: 20px;
 }
 
 button {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 12px 18px;
-  border-radius: 10px;
-  font-size: 15px;
+  margin: 5px;
+  padding: 10px 15px;
+  font-size: 16px;
   cursor: pointer;
 }
 
-#output {
-  max-width: 900px;
-  margin: auto;
-}
-
 .game {
-  background: #1e293b;
-  padding: 14px;
-  margin-bottom: 14px;
-  border-radius: 12px;
-}
-
-.game h3 {
-  margin: 0 0 6px 0;
-}
-
-.league {
-  font-size: 13px;
-  color: #94a3b8;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
