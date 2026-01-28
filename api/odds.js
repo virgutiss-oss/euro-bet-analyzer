@@ -2,38 +2,37 @@ export default async function handler(req, res) {
   const API_KEY = process.env.ODDS_API_KEY;
   const sport = req.query.sport;
 
-  let urls = [];
+  let url = "";
+
+  // ⚽ FUTBOLAS – VISOS LYGOS
+  if (sport === "soccer") {
+    url =
+      "https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" +
+      API_KEY;
+  }
 
   // 🏀 KREPŠINIS
   if (sport === "basketball") {
-    urls = [
-      "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
-      "https://api.the-odds-api.com/v4/sports/basketball_euroleague/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY
-    ];
+    url =
+      "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" +
+      API_KEY;
   }
 
-  // ⚽ FUTBOLAS
-  if (sport === "soccer") {
-    urls = [
-      "https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
-      "https://api.the-odds-api.com/v4/sports/soccer_uefa_champs_league/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
-      "https://api.the-odds-api.com/v4/sports/soccer_spain_la_liga/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY
-    ];
-  }
-
-  if (!urls.length) {
+  if (!url) {
     return res.status(200).json([]);
   }
 
   try {
-    const responses = await Promise.all(
-      urls.map(url => fetch(url).then(r => r.json()))
-    );
+    const response = await fetch(url);
+    const data = await response.json();
 
-    const matches = responses.flat();
+    if (!Array.isArray(data) || data.length === 0) {
+      return res.status(200).json([]);
+    }
+
     const results = [];
 
-    matches.forEach(match => {
+    data.forEach(match => {
       const bookmakers = match.bookmakers || [];
       if (!bookmakers.length) return;
 
@@ -42,7 +41,6 @@ export default async function handler(req, res) {
 
       bookmakers.forEach(bm => {
         bm.markets?.forEach(market => {
-
           // WIN / DRAW / LOSE
           if (market.key === "h2h") {
             market.outcomes.forEach(o => {
@@ -52,7 +50,7 @@ export default async function handler(req, res) {
             });
           }
 
-          // TOTALS (FT)
+          // TOTALS
           if (market.key === "totals") {
             market.outcomes.forEach(o => {
               const p = 1 / o.price;
@@ -68,8 +66,12 @@ export default async function handler(req, res) {
         });
       });
 
-      const bestWin = Object.entries(winPrices)
-        .reduce((a, b) => (a[1] > b[1] ? a : b), null);
+      const bestWin =
+        Object.keys(winPrices).length > 0
+          ? Object.entries(winPrices).reduce((a, b) =>
+              a[1] > b[1] ? a : b
+            )
+          : null;
 
       results.push({
         league: match.sport_title,
@@ -78,7 +80,9 @@ export default async function handler(req, res) {
 
         winPick: bestWin ? bestWin[0] : null,
         winOdds: bestWin ? bestWin[1] : null,
-        winProb: bestWin ? Math.round((1 / bestWin[1]) * 100) : null,
+        winProb: bestWin
+          ? Math.round((1 / bestWin[1]) * 100)
+          : null,
 
         total: bestTotal
           ? {
@@ -91,7 +95,7 @@ export default async function handler(req, res) {
     });
 
     res.status(200).json(results);
-  } catch (e) {
+  } catch (err) {
     res.status(500).json({ error: "API klaida" });
   }
 }
