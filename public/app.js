@@ -33,7 +33,7 @@ async function loadSport(sport) {
           ${
             game.totalPick
               ? `<p>
-                  📊 Over/Under:
+                  📊 Total (BEST):
                   <b>${game.totalPick}</b>
                   @ ${game.totalOdds}
                   (${game.totalProb}%)
