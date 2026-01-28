@@ -1,9 +1,7 @@
 export default async function handler(req, res) {
   const { sport } = req.query;
 
-  if (!sport) {
-    return res.status(400).json([]);
-  }
+  if (!sport) return res.status(200).json([]);
 
   try {
     const response = await fetch(
@@ -11,31 +9,46 @@ export default async function handler(req, res) {
     );
 
     const raw = await response.json();
-
-    if (!Array.isArray(raw)) {
-      return res.status(200).json([]);
-    }
+    if (!Array.isArray(raw)) return res.status(200).json([]);
 
     const results = [];
 
     raw.forEach(game => {
+      const bestOdds = {};
+
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
           m.outcomes?.forEach(o => {
-            results.push({
-              home: game.home_team,
-              away: game.away_team,
-              pick: o.name,
-              odds: o.price
-            });
+            if (!bestOdds[o.name] || o.price > bestOdds[o.name]) {
+              bestOdds[o.name] = o.price;
+            }
           });
         });
       });
+
+      let bestPick = null;
+      let bestPrice = 0;
+
+      Object.entries(bestOdds).forEach(([name, price]) => {
+        if (price > bestPrice) {
+          bestPrice = price;
+          bestPick = name;
+        }
+      });
+
+      if (bestPick) {
+        results.push({
+          home: game.home_team,
+          away: game.away_team,
+          pick: bestPick,
+          odds: bestPrice
+        });
+      }
     });
 
     res.status(200).json(results);
-  } catch (e) {
-    console.error(e);
+  } catch (err) {
+    console.error(err);
     res.status(500).json([]);
   }
 }
