@@ -1,16 +1,16 @@
 export default async function handler(req, res) {
   const API_KEY = process.env.ODDS_API_KEY;
   const sport = req.query.sport || "basketball";
-  const mode = req.query.mode || "all"; // all | totals
+  const mode = req.query.mode || "all";
 
   let urls = [];
 
   if (sport === "basketball") {
     urls = [
-      "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=eu&markets=h2h,totals,totals_1st_half&oddsFormat=decimal&apiKey=" + API_KEY,
-      "https://api.the-odds-api.com/v4/sports/basketball_euroleague/odds/?regions=eu&markets=h2h,totals,totals_1st_half&oddsFormat=decimal&apiKey=" + API_KEY,
-      "https://api.the-odds-api.com/v4/sports/basketball_eurocup/odds/?regions=eu&markets=h2h,totals,totals_1st_half&oddsFormat=decimal&apiKey=" + API_KEY,
-      "https://api.the-odds-api.com/v4/sports/basketball_fiba_champions_league/odds/?regions=eu&markets=h2h,totals,totals_1st_half&oddsFormat=decimal&apiKey=" + API_KEY
+      "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
+      "https://api.the-odds-api.com/v4/sports/basketball_euroleague/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
+      "https://api.the-odds-api.com/v4/sports/basketball_eurocup/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
+      "https://api.the-odds-api.com/v4/sports/basketball_fiba_champions_league/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY
     ];
   }
 
@@ -24,11 +24,10 @@ export default async function handler(req, res) {
 
     matches.forEach(match => {
       const bookmakers = match.bookmakers || [];
-      if (bookmakers.length === 0) return;
+      if (!bookmakers.length) return;
 
       const winPrices = {};
-      let bestFT = null;
-      let best1H = null;
+      let bestTotal = null;
 
       bookmakers.forEach(bm => {
         bm.markets?.forEach(market => {
@@ -41,28 +40,13 @@ export default async function handler(req, res) {
             });
           }
 
-          // FULL TIME TOTAL
+          // TOTALS (FT)
           if (market.key === "totals") {
             market.outcomes.forEach(o => {
               const p = 1 / o.price;
-              if (!bestFT || p > bestFT.prob) {
-                bestFT = {
+              if (!bestTotal || p > bestTotal.prob) {
+                bestTotal = {
                   label: "FT Total",
-                  pick: `${o.name} ${o.point}`,
-                  odds: o.price,
-                  prob: p
-                };
-              }
-            });
-          }
-
-          // 1ST HALF TOTAL
-          if (market.key === "totals_1st_half") {
-            market.outcomes.forEach(o => {
-              const p = 1 / o.price;
-              if (!best1H || p > best1H.prob) {
-                best1H = {
-                  label: "1st Half Total",
                   pick: `${o.name} ${o.point}`,
                   odds: o.price,
                   prob: p
@@ -73,15 +57,8 @@ export default async function handler(req, res) {
         });
       });
 
-      // pasirinkam GERIAUSIĄ total
-      let bestTotal = bestFT || best1H;
-      if (bestFT && best1H && best1H.prob > bestFT.prob) {
-        bestTotal = best1H;
-      }
-
       if (!bestTotal) return;
 
-      // jeigu TOTALS ONLY režimas
       if (mode === "totals") {
         results.push({
           sport: "basketball",
@@ -98,7 +75,6 @@ export default async function handler(req, res) {
         return;
       }
 
-      // FULL MODE
       const bestWin = Object.keys(winPrices).length
         ? Object.entries(winPrices).reduce((a, b) => (a[1] > b[1] ? a : b))
         : null;
