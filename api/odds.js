@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   const API_KEY = process.env.ODDS_API_KEY;
 
   try {
-    const url = `https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
+    const url = `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
     const response = await fetch(url);
     const data = await response.json();
 
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       results.push({
         home: match.home_team,
         away: match.away_team,
-        market: "Win / Lose (NBA)",
+        market: "Win / Lose (EPL)",
         pick: best.name,
         probability: Math.round((1 / best.price) * 100)
       });
