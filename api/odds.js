@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   const API_KEY = process.env.ODDS_API_KEY;
 
   const url =
-    "https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=" +
+    "https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" +
     API_KEY;
 
   try {
@@ -19,30 +19,60 @@ export default async function handler(req, res) {
       const bookmakers = match.bookmakers || [];
       if (bookmakers.length === 0) return;
 
-      // surenkam GERIAUSIĄ koeficientą iš visų bookmakerių
-      const prices = {};
+      /* ===== WIN / LOSE ===== */
+      const winPrices = {};
+
+      /* ===== OVER / UNDER ===== */
+      let bestTotal = null;
 
       bookmakers.forEach(bm => {
-        const market = bm.markets?.find(m => m.key === "h2h");
-        if (!market) return;
+        bm.markets?.forEach(market => {
 
-        market.outcomes.forEach(o => {
-          if (!prices[o.name] || o.price > prices[o.name]) {
-            prices[o.name] = o.price;
+          // H2H
+          if (market.key === "h2h") {
+            market.outcomes.forEach(o => {
+              if (!winPrices[o.name] || o.price > winPrices[o.name]) {
+                winPrices[o.name] = o.price;
+              }
+            });
+          }
+
+          // TOTALS
+          if (market.key === "totals") {
+            market.outcomes.forEach(o => {
+              const prob = 1 / o.price;
+              if (!bestTotal || prob > bestTotal.prob) {
+                bestTotal = {
+                  line: o.point,
+                  pick: o.name,
+                  prob: prob
+                };
+              }
+            });
           }
         });
       });
 
-      const bestPick = Object.entries(prices).reduce((a, b) =>
+      // Best Win/Lose
+      const bestWin = Object.entries(winPrices).reduce((a, b) =>
         a[1] > b[1] ? a : b
       );
 
       results.push({
+        sport: "football",
+        league: match.sport_title,
         home: match.home_team,
         away: match.away_team,
-        market: "Win / Lose",
-        pick: bestPick[0],
-        probability: Math.round((1 / bestPick[1]) * 100)
+
+        winPick: bestWin[0],
+        winProb: Math.round((1 / bestWin[1]) * 100),
+
+        totalPick: bestTotal
+          ? `${bestTotal.pick} ${bestTotal.line}`
+          : null,
+        totalProb: bestTotal
+          ? Math.round(bestTotal.prob * 100)
+          : null
       });
     });
 
