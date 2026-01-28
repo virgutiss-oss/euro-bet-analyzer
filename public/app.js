@@ -1,10 +1,7 @@
-console.log("APP JS UŽSIKROVĖ");
-
 const output = document.getElementById("output");
+document.getElementById("football").onclick = loadFootball;
 
-document.getElementById("football").onclick = loadOdds;
-
-async function loadOdds() {
+async function loadFootball() {
   output.innerHTML = "⏳ Kraunama...";
 
   try {
@@ -22,13 +19,19 @@ async function loadOdds() {
       output.innerHTML += `
         <div class="game">
           <h3>${game.home} vs ${game.away}</h3>
-          <p>📊 ${game.market}</p>
-          <p>👉 <b>${game.pick}</b></p>
-          <p>📈 Tikimybė: <b>${game.probability}%</b></p>
+          <div class="league">${game.league}</div>
+
+          <p>🏆 Win/Lose: <b>${game.winPick}</b> (${game.winProb}%)</p>
+
+          ${
+            game.totalPick
+              ? `<p>📊 Over/Under: <b>${game.totalPick}</b> (${game.totalProb}%)</p>`
+              : ""
+          }
         </div>
       `;
     });
-  } catch (e) {
-    output.innerHTML = "❌ Klaida gaunant duomenis";
+  } catch {
+    output.innerHTML = "❌ Klaida";
   }
 }
