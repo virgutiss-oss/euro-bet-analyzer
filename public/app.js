@@ -1,11 +1,13 @@
 const output = document.getElementById("output");
-document.getElementById("football").onclick = loadFootball;
 
-async function loadFootball() {
+document.getElementById("football").onclick = () => loadSport("football");
+document.getElementById("basketball").onclick = () => loadSport("basketball");
+
+async function loadSport(sport) {
   output.innerHTML = "⏳ Kraunama...";
 
   try {
-    const res = await fetch("/api/odds");
+    const res = await fetch(`/api/odds?sport=${sport}`);
     const data = await res.json();
 
     if (!Array.isArray(data) || data.length === 0) {
@@ -21,11 +23,21 @@ async function loadFootball() {
           <h3>${game.home} vs ${game.away}</h3>
           <div class="league">${game.league}</div>
 
-          <p>🏆 Win/Lose: <b>${game.winPick}</b> (${game.winProb}%)</p>
+          <p>
+            🏆 Win/Lose:
+            <b>${game.winPick}</b>
+            @ ${game.winOdds}
+            (${game.winProb}%)
+          </p>
 
           ${
             game.totalPick
-              ? `<p>📊 Over/Under: <b>${game.totalPick}</b> (${game.totalProb}%)</p>`
+              ? `<p>
+                  📊 Over/Under:
+                  <b>${game.totalPick}</b>
+                  @ ${game.totalOdds}
+                  (${game.totalProb}%)
+                </p>`
               : ""
           }
         </div>
