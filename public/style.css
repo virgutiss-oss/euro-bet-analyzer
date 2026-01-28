@@ -1,8 +1,8 @@
 body {
   background: #0f172a;
-  color: white;
-  font-family: Arial, sans-serif;
-  padding: 20px;
+  color: #f8fafc;
+  font-family: system-ui, sans-serif;
+  padding: 16px;
 }
 
 h1 {
@@ -12,22 +12,20 @@ h1 {
 .buttons {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 button {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 6px;
   background: #2563eb;
   color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 8px;
   font-size: 16px;
 }
 
 #output {
-  max-width: 700px;
+  max-width: 720px;
   margin: auto;
 }
 
@@ -35,5 +33,5 @@ button {
   background: #1e293b;
   padding: 12px;
   margin-bottom: 10px;
-  border-radius: 8px;
+  border-radius: 10px;
 }
