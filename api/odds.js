@@ -2,38 +2,36 @@ export default async function handler(req, res) {
   const API_KEY = process.env.ODDS_API_KEY;
   const sport = req.query.sport || "football";
 
-  let url = "";
+  let urls = [];
 
   if (sport === "football") {
-    url =
-      "https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" +
-      API_KEY;
+    urls = [
+      "https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY
+    ];
   }
 
   if (sport === "basketball") {
-    url =
-      "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=" +
-      API_KEY;
+    urls = [
+      "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
+      "https://api.the-odds-api.com/v4/sports/basketball_euroleague/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
+      "https://api.the-odds-api.com/v4/sports/basketball_eurocup/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
+      "https://api.the-odds-api.com/v4/sports/basketball_fiba_champions_league/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY
+    ];
   }
 
   try {
-    const response = await fetch(url);
-    const data = await response.json();
+    const responses = await Promise.all(
+      urls.map(url => fetch(url).then(r => r.json()))
+    );
 
-    if (!Array.isArray(data) || data.length === 0) {
-      return res.status(200).json([]);
-    }
-
+    const allMatches = responses.flat();
     const results = [];
 
-    data.forEach(match => {
+    allMatches.forEach(match => {
       const bookmakers = match.bookmakers || [];
       if (bookmakers.length === 0) return;
 
-      /* ===== WIN / LOSE ===== */
       const winPrices = {};
-
-      /* ===== TOTALS ===== */
       let bestTotal = null;
 
       bookmakers.forEach(bm => {
@@ -62,6 +60,8 @@ export default async function handler(req, res) {
         });
       });
 
+      if (Object.keys(winPrices).length === 0) return;
+
       const bestWin = Object.entries(winPrices).reduce((a, b) =>
         a[1] > b[1] ? a : b
       );
@@ -76,13 +76,9 @@ export default async function handler(req, res) {
         winOdds: bestWin[1],
         winProb: Math.round((1 / bestWin[1]) * 100),
 
-        totalPick: bestTotal
-          ? `${bestTotal.pick} ${bestTotal.line}`
-          : null,
+        totalPick: bestTotal ? `${bestTotal.pick} ${bestTotal.line}` : null,
         totalOdds: bestTotal ? bestTotal.price : null,
-        totalProb: bestTotal
-          ? Math.round(bestTotal.prob * 100)
-          : null
+        totalProb: bestTotal ? Math.round(bestTotal.prob * 100) : null
       });
     });
 
