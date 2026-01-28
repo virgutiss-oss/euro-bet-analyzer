@@ -7,14 +7,47 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(url);
-    const text = await response.text();
+    const data = await response.json();
 
-    // GRĄŽINAM VISKĄ, KĄ ATSIUNTĖ API
-    res.status(200).json({
-      status: response.status,
-      raw: text
+    if (!Array.isArray(data) || data.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    const results = [];
+
+    data.forEach(match => {
+      const bookmakers = match.bookmakers || [];
+      if (bookmakers.length === 0) return;
+
+      // surenkam GERIAUSIĄ koeficientą iš visų bookmakerių
+      const prices = {};
+
+      bookmakers.forEach(bm => {
+        const market = bm.markets?.find(m => m.key === "h2h");
+        if (!market) return;
+
+        market.outcomes.forEach(o => {
+          if (!prices[o.name] || o.price > prices[o.name]) {
+            prices[o.name] = o.price;
+          }
+        });
+      });
+
+      const bestPick = Object.entries(prices).reduce((a, b) =>
+        a[1] > b[1] ? a : b
+      );
+
+      results.push({
+        home: match.home_team,
+        away: match.away_team,
+        market: "Win / Lose",
+        pick: bestPick[0],
+        probability: Math.round((1 / bestPick[1]) * 100)
+      });
     });
+
+    res.status(200).json(results);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "API klaida" });
   }
 }
