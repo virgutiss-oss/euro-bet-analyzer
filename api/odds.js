@@ -1,56 +1,41 @@
 export default async function handler(req, res) {
+  const { sport } = req.query;
+
+  if (!sport) {
+    return res.status(400).json([]);
+  }
+
   try {
-    const sport = req.query.sport || "basketball_nba";
+    const response = await fetch(
+      `https://api.the-odds-api.com/v4/sports/${sport}/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`
+    );
 
-    if (!process.env.ODDS_API_KEY) {
-      return res.status(500).json({ error: "NO_API_KEY" });
-    }
+    const raw = await response.json();
 
-    const url =
-      `https://api.the-odds-api.com/v4/sports/${sport}/odds` +
-      `?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      const text = await response.text();
-      return res.status(response.status).json({
-        error: "ODDS_API_ERROR",
-        status: response.status,
-        raw: text
-      });
-    }
-
-    const data = await response.json();
-
-    if (!Array.isArray(data)) {
+    if (!Array.isArray(raw)) {
       return res.status(200).json([]);
     }
 
-    const games = [];
+    const results = [];
 
-    data.forEach(match => {
-      if (!match.bookmakers?.length) return;
-
-      const market = match.bookmakers[0].markets?.find(m => m.key === "h2h");
-      if (!market) return;
-
-      market.outcomes.forEach(outcome => {
-        games.push({
-          home: match.home_team,
-          away: match.away_team,
-          pick: outcome.name,
-          odds: outcome.price
+    raw.forEach(game => {
+      game.bookmakers?.forEach(bm => {
+        bm.markets?.forEach(m => {
+          m.outcomes?.forEach(o => {
+            results.push({
+              home: game.home_team,
+              away: game.away_team,
+              pick: o.name,
+              odds: o.price
+            });
+          });
         });
       });
     });
 
-    res.status(200).json(games);
-
-  } catch (err) {
-    res.status(500).json({
-      error: "SERVER_CRASH",
-      message: err.message
-    });
+    res.status(200).json(results);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json([]);
   }
 }
