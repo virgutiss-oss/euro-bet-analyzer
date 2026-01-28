@@ -2,37 +2,45 @@ export default async function handler(req, res) {
   const API_KEY = process.env.ODDS_API_KEY;
   const sport = req.query.sport;
 
-  let url = "";
+  let urls = [];
+
+  // 🏀 KREPŠINIS – VISOS LYGOS
+  if (sport === "basketball") {
+    urls = [
+      // NBA
+      "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
+
+      // EuroLeague
+      "https://api.the-odds-api.com/v4/sports/basketball_euroleague/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
+
+      // EuroCup
+      "https://api.the-odds-api.com/v4/sports/basketball_eurocup/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY,
+
+      // FIBA Champions League
+      "https://api.the-odds-api.com/v4/sports/basketball_fiba_champions_league/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY
+    ];
+  }
 
   // ⚽ FUTBOLAS – VISOS LYGOS
   if (sport === "soccer") {
-    url =
-      "https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" +
-      API_KEY;
+    urls = [
+      "https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" + API_KEY
+    ];
   }
 
-  // 🏀 KREPŠINIS
-  if (sport === "basketball") {
-    url =
-      "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=" +
-      API_KEY;
-  }
-
-  if (!url) {
+  if (!urls.length) {
     return res.status(200).json([]);
   }
 
   try {
-    const response = await fetch(url);
-    const data = await response.json();
+    const responses = await Promise.all(
+      urls.map(url => fetch(url).then(r => r.json()))
+    );
 
-    if (!Array.isArray(data) || data.length === 0) {
-      return res.status(200).json([]);
-    }
-
+    const matches = responses.flat();
     const results = [];
 
-    data.forEach(match => {
+    matches.forEach(match => {
       const bookmakers = match.bookmakers || [];
       if (!bookmakers.length) return;
 
@@ -41,7 +49,8 @@ export default async function handler(req, res) {
 
       bookmakers.forEach(bm => {
         bm.markets?.forEach(market => {
-          // WIN / DRAW / LOSE
+
+          // 🏆 WIN / LOSE
           if (market.key === "h2h") {
             market.outcomes.forEach(o => {
               if (!winPrices[o.name] || o.price > winPrices[o.name]) {
@@ -50,15 +59,15 @@ export default async function handler(req, res) {
             });
           }
 
-          // TOTALS
+          // 📊 TOTALS (BEST)
           if (market.key === "totals") {
             market.outcomes.forEach(o => {
-              const p = 1 / o.price;
-              if (!bestTotal || p > bestTotal.prob) {
+              const prob = 1 / o.price;
+              if (!bestTotal || prob > bestTotal.prob) {
                 bestTotal = {
                   pick: `${o.name} ${o.point}`,
                   odds: o.price,
-                  prob: p
+                  prob
                 };
               }
             });
