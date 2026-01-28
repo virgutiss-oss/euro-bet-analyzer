@@ -2,12 +2,15 @@ const output = document.getElementById("output");
 
 document.getElementById("football").onclick = () => loadSport("football");
 document.getElementById("basketball").onclick = () => loadSport("basketball");
+document.getElementById("basketballTotals")?.addEventListener("click", () =>
+  loadSport("basketball", "totals")
+);
 
-async function loadSport(sport) {
+async function loadSport(sport, mode = "all") {
   output.innerHTML = "⏳ Kraunama...";
 
   try {
-    const res = await fetch(`/api/odds?sport=${sport}`);
+    const res = await fetch(`/api/odds?sport=${sport}&mode=${mode}`);
     const data = await res.json();
 
     if (!Array.isArray(data) || data.length === 0) {
@@ -23,23 +26,22 @@ async function loadSport(sport) {
           <h3>${game.home} vs ${game.away}</h3>
           <div class="league">${game.league}</div>
 
-          <p>
-            🏆 Win/Lose:
-            <b>${game.winPick}</b>
-            @ ${game.winOdds}
-            (${game.winProb}%)
-          </p>
-
           ${
-            game.totalPick
-              ? `<p>
-                  📊 Total (BEST):
-                  <b>${game.totalPick}</b>
-                  @ ${game.totalOdds}
-                  (${game.totalProb}%)
+            game.winPick
+              ? `<p>🏆 Win/Lose:
+                  <b>${game.winPick}</b>
+                  @ ${game.winOdds}
+                  (${game.winProb}%)
                 </p>`
               : ""
           }
+
+          <p>
+            📊 ${game.total.label}:
+            <b>${game.total.pick}</b>
+            @ ${game.total.odds}
+            (${game.total.prob}%)
+          </p>
         </div>
       `;
     });
