@@ -2,19 +2,22 @@
 <html lang="lt">
 <head>
   <meta charset="UTF-8" />
-  <title>Sports Betting Analyzer</title>
+  <title>🏆 Sports Betting Analyzer</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🏆 Sports Betting Analyzer</h1>
 
-  <div class="buttons">
-    <button id="btn-soccer">⚽ Futbolas</button>
-    <button id="btn-basketball">🏀 Krepšinis</button>
-  </div>
+<h1>🏆 Sports Betting Analyzer</h1>
 
-  <div id="output">Pasirink sportą</div>
+<div class="buttons">
+  <button onclick="loadSport('football')">⚽ Futbolas</button>
+  <button onclick="loadSport('basketball')">🏀 Krepšinis</button>
+  <button onclick="loadSport('hockey')">🏒 Ledo ritulys</button>
+  <button onclick="loadSport('tennis')">🎾 Tenisas</button>
+</div>
 
-  <script src="app.js"></script>
+<div id="content">Pasirink sportą</div>
+
+<script src="app.js"></script>
 </body>
 </html>
