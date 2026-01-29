@@ -53,13 +53,11 @@ export default async function handler(req, res) {
 
           /* ======================
              📊 OVER / UNDER
-             🔒 tik jei odds >= 1.50
+             ✅ FIX + odds >= 1.50
           ====================== */
           if (market.key === "totals") {
-            const line = market.outcomes[0].point;
-
             market.outcomes.forEach(outcome => {
-              if (outcome.price < 1.5) return; // 🔥 SVARBIAUSIAS FILTRAS
+              if (outcome.price < 1.5) return;
 
               const probability = Math.round((1 / outcome.price) * 100);
 
@@ -67,10 +65,10 @@ export default async function handler(req, res) {
                 sport,
                 match: `${home} vs ${away}`,
                 type: "Over/Under",
-                pick: `${outcome.name} ${line}`,
+                pick: `${outcome.name} ${outcome.point}`,
                 odds: outcome.price,
                 probability,
-                line
+                line: outcome.point
               });
             });
           }
@@ -81,7 +79,7 @@ export default async function handler(req, res) {
     res.status(200).json(picks);
 
   } catch (error) {
-    console.error(error);
+    console.error("API ERROR:", error);
     res.status(500).json({ error: "Serverio klaida" });
   }
 }
