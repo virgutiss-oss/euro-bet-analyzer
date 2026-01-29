@@ -1,6 +1,5 @@
 export default async function handler(req, res) {
   const { sport, market } = req.query;
-
   const API_KEY = process.env.ODDS_API_KEY;
 
   let sportKeys = [];
@@ -20,7 +19,6 @@ export default async function handler(req, res) {
 
     const r = await fetch(url);
     const data = await r.json();
-
     if (!Array.isArray(data)) continue;
 
     data.forEach(match => {
@@ -28,14 +26,17 @@ export default async function handler(req, res) {
       const mk = bm?.markets?.[0];
       if (!mk) return;
 
-      mk.outcomes.forEach(o => {
-        results.push({
-          home: match.home_team,
-          away: match.away_team,
-          market: mk.key,
-          pick: o.name,
-          odds: o.price
-        });
+      // 🔥 PASIRENKAM GERIAUSIĄ (mažiausias odds)
+      const best = mk.outcomes.reduce((a, b) =>
+        a.price < b.price ? a : b
+      );
+
+      results.push({
+        home: match.home_team,
+        away: match.away_team,
+        market: mk.key,
+        pick: best.name,
+        odds: best.price
       });
     });
   }
