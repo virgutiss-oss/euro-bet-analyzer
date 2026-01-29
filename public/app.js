@@ -1,33 +1,66 @@
 const output = document.getElementById("output");
 
-document.getElementById("football").onclick = () => loadOdds("football");
-document.getElementById("basketball").onclick = () => loadOdds("basketball");
+let currentSport = null;
+let currentMarket = "h2h";
 
-async function loadOdds(sport) {
+document.getElementById("soccer").onclick = () => {
+  currentSport = "soccer";
+  loadOdds();
+};
+
+document.getElementById("basketball").onclick = () => {
+  currentSport = "basketball";
+  loadOdds();
+};
+
+document.getElementById("winlose").onclick = () => {
+  currentMarket = "h2h";
+  loadOdds();
+};
+
+document.getElementById("totals").onclick = () => {
+  currentMarket = "totals";
+  loadOdds();
+};
+
+async function loadOdds() {
+  if (!currentSport) {
+    output.innerHTML = "❌ Nepasirinktas sportas";
+    return;
+  }
+
   output.innerHTML = "⏳ Kraunama...";
 
   try {
-    const res = await fetch(`/api/odds?sport=${sport}`);
+    const res = await fetch(`/api/odds?sport=${currentSport}&market=${currentMarket}`);
     const data = await res.json();
 
-    if (!data || data.length === 0) {
+    if (!Array.isArray(data) || data.length === 0) {
       output.innerHTML = "❌ Nėra duomenų";
       return;
     }
 
-    output.innerHTML = "";
-
-    data.forEach(game => {
-      const div = document.createElement("div");
-      div.className = "game";
-      div.innerHTML = `
-        <b>${game.home}</b> vs <b>${game.away}</b><br/>
-        👉 ${game.pick} @ ${game.odds}
-      `;
-      output.appendChild(div);
-    });
-
+    render(data);
   } catch (e) {
-    output.innerHTML = "❌ Klaida";
+    output.innerHTML = "❌ API klaida";
   }
+}
+
+function render(games) {
+  output.innerHTML = "";
+
+  games.forEach(g => {
+    const div = document.createElement("div");
+    div.className = "game";
+
+    div.innerHTML = `
+      <h3>${g.home} vs ${g.away}</h3>
+      <p>📊 Rinka: ${g.market}</p>
+      <p>👉 Pasirinkimas: <b>${g.pick}</b></p>
+      <p>💰 Koeficientas: <b>${g.odds}</b></p>
+      <hr>
+    `;
+
+    output.appendChild(div);
+  });
 }
