@@ -1,8 +1,5 @@
 const output = document.getElementById("output");
 
-document.getElementById("btn-soccer").onclick = () => loadOdds("soccer");
-document.getElementById("btn-basketball").onclick = () => loadOdds("basketball");
-
 async function loadOdds(sport) {
   output.innerHTML = "⏳ Kraunama...";
 
@@ -15,28 +12,23 @@ async function loadOdds(sport) {
       return;
     }
 
-    renderGames(data);
+    output.innerHTML = "";
+
+    data.forEach(g => {
+      const div = document.createElement("div");
+      div.className = "game";
+      div.innerHTML = `
+        <b>${g.home} vs ${g.away}</b><br/>
+        📊 ${g.type}<br/>
+        👉 ${g.pick}<br/>
+        💰 ${g.odds}<br/>
+        ${g.line ? "📏 Linija: " + g.line : ""}
+        <hr/>
+      `;
+      output.appendChild(div);
+    });
+
   } catch (e) {
-    output.innerHTML = "❌ Klaida kraunant duomenis";
+    output.innerHTML = "❌ Klaida kraunant";
   }
-}
-
-function renderGames(games) {
-  output.innerHTML = "";
-
-  games.forEach(g => {
-    const div = document.createElement("div");
-    div.className = "game";
-
-    div.innerHTML = `
-      <h3>${g.home} vs ${g.away}</h3>
-      <p>📊 Rinka: ${g.market}</p>
-      <p>👉 Pasirinkimas: <b>${g.pick}</b></p>
-      ${g.line ? `<p>📏 Linija: ${g.line}</p>` : ""}
-      <p>💰 Koeficientas: ${g.odds}</p>
-      <p>📈 Tikimybė: ${g.probability}%</p>
-    `;
-
-    output.appendChild(div);
-  });
 }
