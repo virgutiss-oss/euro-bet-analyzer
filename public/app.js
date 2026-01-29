@@ -1,8 +1,5 @@
 const output = document.getElementById("output");
 
-document.getElementById("btn-soccer").onclick = () => loadOdds("soccer");
-document.getElementById("btn-basketball").onclick = () => loadOdds("basketball");
-
 async function loadOdds(sport) {
   output.innerHTML = "⏳ Kraunama...";
 
@@ -10,40 +7,42 @@ async function loadOdds(sport) {
     const res = await fetch(`/api/odds?sport=${sport}`);
     const data = await res.json();
 
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!data.length) {
       output.innerHTML = "❌ Nėra duomenų";
       return;
     }
 
-    renderGames(data);
+    output.innerHTML = "";
+
+    data.forEach(g => {
+      const div = document.createElement("div");
+      div.className = "game";
+
+      let html = `
+        <h3>${g.home} vs ${g.away}</h3>
+        <p><b>${g.league}</b></p>
+      `;
+
+      if (g.win) {
+        html += `
+          <p>🏆 Win: <b>${g.win.pick}</b>
+          (${g.win.odds}) – ${g.win.probability}%</p>
+        `;
+      }
+
+      if (g.total) {
+        html += `
+          <p>📊 ${g.total.pick} ${g.total.line}
+          (${g.total.odds}) – ${g.total.probability}%</p>
+        `;
+      }
+
+      div.innerHTML = html + "<hr/>";
+      output.appendChild(div);
+    });
+
   } catch (e) {
     console.error(e);
-    output.innerHTML = "❌ Klaida gaunant duomenis";
+    output.innerHTML = "❌ Klaida";
   }
-}
-
-function renderGames(games) {
-  output.innerHTML = "";
-
-  games.forEach(g => {
-    const div = document.createElement("div");
-    div.className = "game";
-
-    div.innerHTML = `
-      <h3>${g.home} vs ${g.away}</h3>
-      <small>${g.league}</small>
-
-      ${g.winPick ? `
-        <p>🏆 WIN/LOSE: <b>${g.winPick.pick}</b>
-        (${g.winPick.odds}) – ${g.winPick.probability}%</p>` : ""}
-
-      ${g.totalPick ? `
-        <p>📊 TOTAL: <b>${g.totalPick.pick}</b>
-        (${g.totalPick.odds}) – ${g.totalPick.probability}%</p>` : ""}
-
-      <hr/>
-    `;
-
-    output.appendChild(div);
-  });
 }
