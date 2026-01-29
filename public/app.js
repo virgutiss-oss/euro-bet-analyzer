@@ -18,17 +18,18 @@ async function loadOdds(sport) {
       const div = document.createElement("div");
       div.className = "game";
       div.innerHTML = `
-        <b>${g.home} vs ${g.away}</b><br/>
-        📊 ${g.type}<br/>
-        👉 ${g.pick}<br/>
-        💰 ${g.odds}<br/>
+        <b>${g.home} vs ${g.away}</b><br>
+        🏷 ${g.market}<br>
+        👉 ${g.pick}<br>
+        💰 ${g.odds}<br>
+        📈 ${g.probability}%<br>
         ${g.line ? "📏 Linija: " + g.line : ""}
-        <hr/>
+        <hr>
       `;
       output.appendChild(div);
     });
 
-  } catch (e) {
-    output.innerHTML = "❌ Klaida kraunant";
+  } catch {
+    output.innerHTML = "❌ Klaida";
   }
 }
