@@ -1,54 +1,51 @@
 export default async function handler(req, res) {
   const { sport } = req.query;
 
-  if (!sport) return res.status(200).json([]);
+  if (!sport) {
+    return res.status(400).json({ error: "Missing sport" });
+  }
+
+  const API_KEY = process.env.ODDS_API_KEY;
+
+  let sportKey = "";
+
+  if (sport === "football") {
+    sportKey = "soccer_uefa_champs_league";
+  }
+
+  if (sport === "basketball") {
+    sportKey = "basketball_nba";
+  }
+
+  const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${API_KEY}`;
 
   try {
-    const response = await fetch(
-      `https://api.the-odds-api.com/v4/sports/${sport}/odds/?regions=eu&markets=h2h&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`
-    );
+    const response = await fetch(url);
+    const data = await response.json();
 
-    const raw = await response.json();
-    if (!Array.isArray(raw)) return res.status(200).json([]);
+    if (!Array.isArray(data)) {
+      return res.status(200).json([]);
+    }
 
-    const results = [];
+    const games = [];
 
-    raw.forEach(game => {
-      const bestOdds = {};
+    data.forEach(match => {
+      const bookmaker = match.bookmakers?.[0];
+      const market = bookmaker?.markets?.[0];
+      if (!market) return;
 
-      game.bookmakers?.forEach(bm => {
-        bm.markets?.forEach(m => {
-          m.outcomes?.forEach(o => {
-            if (!bestOdds[o.name] || o.price > bestOdds[o.name]) {
-              bestOdds[o.name] = o.price;
-            }
-          });
+      market.outcomes.forEach(outcome => {
+        games.push({
+          home: match.home_team,
+          away: match.away_team,
+          pick: outcome.name,
+          odds: outcome.price
         });
       });
-
-      let bestPick = null;
-      let bestPrice = 0;
-
-      Object.entries(bestOdds).forEach(([name, price]) => {
-        if (price > bestPrice) {
-          bestPrice = price;
-          bestPick = name;
-        }
-      });
-
-      if (bestPick) {
-        results.push({
-          home: game.home_team,
-          away: game.away_team,
-          pick: bestPick,
-          odds: bestPrice
-        });
-      }
     });
 
-    res.status(200).json(results);
+    res.status(200).json(games);
   } catch (err) {
-    console.error(err);
-    res.status(500).json([]);
+    res.status(500).json({ error: "API error" });
   }
 }
