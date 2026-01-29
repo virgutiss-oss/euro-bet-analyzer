@@ -1,48 +1,54 @@
-const output = document.getElementById("output");
+async function loadSport(sport) {
+  const box = document.getElementById("content");
+  box.innerHTML = "Kraunama…";
 
-async function loadOdds(sport) {
-  output.innerHTML = "⏳ Kraunama...";
+  const res = await fetch("/api/odds");
+  const data = await res.json();
+  const games = data[sport];
 
-  try {
-    const res = await fetch(`/api/odds?sport=${sport}`);
-    const data = await res.json();
+  if (!games || games.length === 0) {
+    box.innerHTML = "Nėra duomenų";
+    return;
+  }
 
-    if (!data.length) {
-      output.innerHTML = "❌ Nėra duomenų";
-      return;
+  box.innerHTML = "";
+
+  games.forEach(game => {
+    const home = game.home_team;
+    const away = game.away_team;
+
+    let bestPick = null;
+
+    if (game.bookmakers?.length) {
+      game.bookmakers.forEach(bm => {
+        bm.markets.forEach(m => {
+          if (m.key === "totals") {
+            const over = m.outcomes.find(o => o.name === "Over");
+            const under = m.outcomes.find(o => o.name === "Under");
+
+            if (over && (!bestPick || over.price > bestPick.price)) {
+              bestPick = { type: "Over", line: over.point, price: over.price };
+            }
+            if (under && (!bestPick || under.price > bestPick.price)) {
+              bestPick = { type: "Under", line: under.point, price: under.price };
+            }
+          }
+        });
+      });
     }
 
-    output.innerHTML = "";
+    if (!bestPick) return;
 
-    data.forEach(g => {
-      const div = document.createElement("div");
-      div.className = "game";
+    const confidence = Math.min(80, Math.round((bestPick.price - 1) * 100));
 
-      let html = `
-        <h3>${g.home} vs ${g.away}</h3>
-        <p><b>${g.league}</b></p>
-      `;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div><b>${home}</b> vs <b>${away}</b></div>
+      <div class="pick">BEST: ${bestPick.type} ${bestPick.line} @ ${bestPick.price}</div>
+      <div class="meta">Pasitikėjimas: ${confidence}%</div>
+    `;
 
-      if (g.win) {
-        html += `
-          <p>🏆 Win: <b>${g.win.pick}</b>
-          (${g.win.odds}) – ${g.win.probability}%</p>
-        `;
-      }
-
-      if (g.total) {
-        html += `
-          <p>📊 ${g.total.pick} ${g.total.line}
-          (${g.total.odds}) – ${g.total.probability}%</p>
-        `;
-      }
-
-      div.innerHTML = html + "<hr/>";
-      output.appendChild(div);
-    });
-
-  } catch (e) {
-    console.error(e);
-    output.innerHTML = "❌ Klaida";
-  }
+    box.appendChild(card);
+  });
 }
