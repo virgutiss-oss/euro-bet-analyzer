@@ -1,45 +1,50 @@
+import fetch from "node-fetch";
+
 export default async function handler(req, res) {
   const sport = req.query.sport;
   const API_KEY = process.env.ODDS_API_KEY;
 
+  if (!API_KEY) {
+    return res.status(500).json({ error: "NO_API_KEY" });
+  }
+
   if (!sport) {
-    return res.status(400).json({ error: "No sport provided" });
+    return res.status(400).json({ error: "NO_SPORT" });
   }
 
   const SPORTS = {
-    soccer: ["soccer_uefa_champs_league", "soccer_england_premier_league"],
+    soccer: [
+      "soccer_uefa_champs_league",
+      "soccer_england_premier_league"
+    ],
     basketball: [
       "basketball_nba",
-      "basketball_euroleague",
-      "basketball_spain_acb"
+      "basketball_euroleague"
     ]
   };
 
-  const sportKeys = SPORTS[sport] || [];
-  let output = [];
+  let results = [];
 
   try {
-    for (const key of sportKeys) {
+    for (const key of SPORTS[sport] || []) {
       const url = `https://api.the-odds-api.com/v4/sports/${key}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`;
       const r = await fetch(url);
-      const games = await r.json();
+      const data = await r.json();
 
-      if (!Array.isArray(games)) continue;
+      if (!Array.isArray(data)) continue;
 
-      for (const g of games) {
-        const bookmaker = g.bookmakers?.[0];
-        if (!bookmaker) continue;
+      data.forEach(g => {
+        const b = g.bookmakers?.[0];
+        if (!b) return;
 
-        const h2h = bookmaker.markets.find(m => m.key === "h2h");
-        const totals = bookmaker.markets.find(m => m.key === "totals");
+        const h2h = b.markets.find(m => m.key === "h2h");
+        const totals = b.markets.find(m => m.key === "totals");
 
-        // ===== WIN / LOSE / DRAW =====
         let win = null;
         if (h2h) {
           const best = h2h.outcomes.reduce((a, b) =>
             a.price < b.price ? a : b
           );
-
           win = {
             pick: best.name,
             odds: best.price,
@@ -47,15 +52,12 @@ export default async function handler(req, res) {
           };
         }
 
-        // ===== OVER / UNDER (tik krepšinyje) =====
         let total = null;
         if (sport === "basketball" && totals) {
-          const over = totals.outcomes.find(o => o.name === "Over");
-          const under = totals.outcomes.find(o => o.name === "Under");
-
-          if (over && under) {
-            const best = over.price < under.price ? over : under;
-
+          const o = totals.outcomes.find(x => x.name === "Over");
+          const u = totals.outcomes.find(x => x.name === "Under");
+          if (o && u) {
+            const best = o.price < u.price ? o : u;
             total = {
               pick: best.name,
               line: best.point,
@@ -65,19 +67,19 @@ export default async function handler(req, res) {
           }
         }
 
-        output.push({
+        results.push({
           league: g.sport_title,
           home: g.home_team,
           away: g.away_team,
           win,
           total
         });
-      }
+      });
     }
 
-    res.status(200).json(output);
+    res.status(200).json(results);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "CRASH", message: e.message });
   }
 }
