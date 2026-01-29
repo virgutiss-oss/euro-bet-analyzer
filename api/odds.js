@@ -6,9 +6,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Nenurodytas sportas" });
   }
 
-  // SPORTŲ ŽEMĖLAPIS
   const sportsMap = {
-    soccer: "soccer_uefa_champs_league",
+    soccer: ["soccer_uefa_champs_league"],
     basketball: [
       "basketball_nba",
       "basketball_euroleague",
@@ -18,10 +17,7 @@ export default async function handler(req, res) {
     ]
   };
 
-  const sportKeys = Array.isArray(sportsMap[sport])
-    ? sportsMap[sport]
-    : [sportsMap[sport]];
-
+  const sportKeys = sportsMap[sport] || [];
   let results = [];
 
   try {
@@ -39,7 +35,7 @@ export default async function handler(req, res) {
         const h2h = bookmaker.markets.find(m => m.key === "h2h");
         const totals = bookmaker.markets.find(m => m.key === "totals");
 
-        // WIN / LOSE
+        // ===== WIN / LOSE (arba 1X2 futbole) =====
         let winPick = null;
         if (h2h) {
           const best = h2h.outcomes.reduce((a, b) =>
@@ -54,29 +50,26 @@ export default async function handler(req, res) {
           };
         }
 
-        // OVER / UNDER (protingesnė logika)
+        // ===== OVER / UNDER (tik jei yra) =====
         let totalPick = null;
         if (totals) {
-          const over = totals.outcomes.find(o => o.name.toLowerCase().includes("over"));
-          const under = totals.outcomes.find(o => o.name.toLowerCase().includes("under"));
+          const over = totals.outcomes.find(o => o.name === "Over");
+          const under = totals.outcomes.find(o => o.name === "Under");
 
           if (over && under) {
-            let best;
-            if (under.price < 1.75 && over.price >= 1.95) {
-              best = over;
-            } else {
-              best = over.price < under.price ? over : under;
-            }
+            const best = over.price < under.price ? over : under;
 
             totalPick = {
               type: "Over/Under",
               pick: best.name,
+              line: totals.outcomes[0].point,
               odds: best.price,
               probability: Math.round((1 / best.price) * 100)
             };
           }
         }
 
+        // 🔴 SVARBIAUSIA VIETA – VISADA PUSHINAM
         results.push({
           league: game.sport_title,
           home: game.home_team,
