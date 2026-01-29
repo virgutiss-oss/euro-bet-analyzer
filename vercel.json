@@ -1,7 +1,6 @@
 {
-  "functions": {
-    "api/*.js": {
-      "runtime": "edge"
-    }
-  }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ]
 }
