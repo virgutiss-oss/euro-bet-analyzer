@@ -1,5 +1,11 @@
 const output = document.getElementById("output");
 
+document.getElementById("btn-basketball")
+  .addEventListener("click", () => loadOdds("basketball"));
+
+document.getElementById("btn-soccer")
+  .addEventListener("click", () => loadOdds("soccer"));
+
 async function loadOdds(sport) {
   output.innerHTML = "⏳ Kraunama...";
 
@@ -17,19 +23,22 @@ async function loadOdds(sport) {
     data.forEach(g => {
       const div = document.createElement("div");
       div.className = "game";
+
       div.innerHTML = `
         <b>${g.home} vs ${g.away}</b><br>
         🏷 ${g.market}<br>
-        👉 ${g.pick}<br>
-        💰 ${g.odds}<br>
-        📈 ${g.probability}%<br>
-        ${g.line ? "📏 Linija: " + g.line : ""}
+        👉 <b>${g.pick}</b><br>
+        💰 Odds: ${g.odds}<br>
+        📈 Tikimybė: ${g.probability}%<br>
+        ${g.line ? "📏 Linija: " + g.line + "<br>" : ""}
         <hr>
       `;
+
       output.appendChild(div);
     });
 
-  } catch {
-    output.innerHTML = "❌ Klaida";
+  } catch (err) {
+    console.error(err);
+    output.innerHTML = "❌ Klaida kraunant duomenis";
   }
 }
