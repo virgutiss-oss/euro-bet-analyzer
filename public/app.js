@@ -1,3 +1,5 @@
+console.log("APP JS UŽKRAUTAS");
+
 const output = document.getElementById("output");
 
 document.getElementById("btn-basketball")
@@ -23,22 +25,19 @@ async function loadOdds(sport) {
     data.forEach(g => {
       const div = document.createElement("div");
       div.className = "game";
-
       div.innerHTML = `
         <b>${g.home} vs ${g.away}</b><br>
         🏷 ${g.market}<br>
-        👉 <b>${g.pick}</b><br>
-        💰 Odds: ${g.odds}<br>
-        📈 Tikimybė: ${g.probability}%<br>
-        ${g.line ? "📏 Linija: " + g.line + "<br>" : ""}
+        👉 ${g.pick}<br>
+        💰 ${g.odds}<br>
+        📈 ${g.probability}%<br>
+        ${g.line ? "📏 Linija: " + g.line : ""}
         <hr>
       `;
-
       output.appendChild(div);
     });
 
-  } catch (err) {
-    console.error(err);
-    output.innerHTML = "❌ Klaida kraunant duomenis";
+  } catch (e) {
+    output.innerHTML = "❌ Klaida";
   }
 }
