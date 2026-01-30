@@ -1,6 +1,8 @@
 const output = document.getElementById("output");
 const leaguesDiv = document.getElementById("leagues");
 
+// ====== LYGOS ======
+
 // 🏀 KREPŠINIS
 function showBasketball() {
   leaguesDiv.innerHTML = `
@@ -30,7 +32,8 @@ function showSoccer() {
   output.innerHTML = "Pasirink futbolo lygą";
 }
 
-// 📡 API KVIETIMAS
+// ====== API ======
+
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
   leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = true);
@@ -48,20 +51,54 @@ async function loadOdds(league) {
 
     output.innerHTML = "";
 
+    // ===== TOP 3 PAGAL DIDŽIAUSIĄ % (WIN) =====
+    const top3 = [...data]
+      .sort((a, b) => b.win.probability - a.win.probability)
+      .slice(0, 3);
+
+    const topDiv = document.createElement("div");
+    topDiv.className = "top3";
+    topDiv.innerHTML = `<h3>🔥 TOP 3 šiandien pagal %</h3>`;
+
+    top3.forEach(g => {
+      topDiv.innerHTML += `
+        <div class="top-pick">
+          <b>${g.home} vs ${g.away}</b><br>
+          ${g.win.pick} – ${g.win.probability}%
+        </div>
+      `;
+    });
+
+    output.appendChild(topDiv);
+
+    // ===== VISOS RUNGTYNĖS =====
     data.forEach(g => {
       const div = document.createElement("div");
       div.className = "game";
 
+      const date = g.commence_time
+        ? new Date(g.commence_time).toLocaleString("lt-LT", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+          })
+        : "";
+
       div.innerHTML = `
+        <div class="date">📅 ${date}</div>
+
         <b>${g.home} vs ${g.away}</b>
 
         <div class="market">
-          🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
+          🏷 Win/Lose:
+          <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
         </div>
 
         <div class="market">
-          🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})
-          📏 Linija: ${g.total.line} – ${g.total.probability}%
+          🏷 Over/Under:
+          <b>${g.total.pick}</b> (${g.total.odds})
+          📏 ${g.total.line} – ${g.total.probability}%
         </div>
       `;
 
