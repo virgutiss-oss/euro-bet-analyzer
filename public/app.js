@@ -43,8 +43,66 @@ async function loadOdds(league) {
       return;
     }
 
+    const today = new Date().toISOString().slice(0, 10);
+
+    // 🔥 TOP 3 ŠIANDIEN
+    const topToday = data
+      .filter(g => g.date?.startsWith(today))
+      .map(g => {
+        const best =
+          g.total && (!g.win || g.total.probability > g.win.probability)
+            ? { type: "O/U", ...g.total }
+            : g.win
+            ? { type: "Win/Lose", ...g.win }
+            : null;
+
+        return best
+          ? {
+              ...g,
+              bestType: best.type,
+              bestPick: best.pick,
+              bestOdds: best.odds,
+              bestProb: best.probability
+            }
+          : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.bestProb - a.bestProb)
+      .slice(0, 3);
+
     output.innerHTML = "";
 
+    if (topToday.length > 0) {
+      const topDiv = document.createElement("div");
+      topDiv.innerHTML = `<h2>🔥 TOP 3 ŠIANDIEN</h2>`;
+      output.appendChild(topDiv);
+
+      topToday.forEach(g => {
+        const date = new Date(g.date).toLocaleTimeString("lt-LT", {
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+
+        const div = document.createElement("div");
+        div.className = "game";
+        div.style.border = "2px solid #22c55e";
+
+        div.innerHTML = `
+          <div style="opacity:0.8;font-size:14px">📅 Šiandien ${date}</div>
+          <b>${g.home} vs ${g.away}</b>
+
+          <div class="market">
+            ⭐ ${g.bestType}: <b>${g.bestPick}</b>
+            (${g.bestOdds}) – <b>${g.bestProb}%</b>
+          </div>
+        `;
+        output.appendChild(div);
+      });
+
+      output.innerHTML += `<hr style="margin:30px 0">`;
+    }
+
+    // 📋 VISOS RUNGTYNĖS (KAIP BUVO)
     data.forEach(g => {
       const date = new Date(g.date);
       const dateStr = date.toLocaleString("lt-LT", {
