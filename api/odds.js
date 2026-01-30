@@ -7,6 +7,7 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(url);
     const data = await r.json();
+
     if (!Array.isArray(data)) return res.json([]);
 
     const games = [];
@@ -17,6 +18,8 @@ export default async function handler(req, res) {
 
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
+
+          // 🏷 WIN / LOSE
           if (m.key === "h2h") {
             m.outcomes.forEach(o => {
               if (!bestWin || o.price < bestWin.odds) {
@@ -29,8 +32,11 @@ export default async function handler(req, res) {
             });
           }
 
+          // 🏷 OVER / UNDER (TIK >= 1.50)
           if (m.key === "totals") {
             m.outcomes.forEach(o => {
+              if (o.price < 1.5) return; // 🔴 FILTRAS
+
               if (!bestTotal || o.price < bestTotal.odds) {
                 bestTotal = {
                   pick: o.name,
@@ -41,20 +47,23 @@ export default async function handler(req, res) {
               }
             });
           }
+
         });
       });
 
-      if (bestWin && bestTotal) {
+      // ✅ Rungtynės rodomos VISADA jei yra Win/Lose
+      if (bestWin) {
         games.push({
           home: game.home_team,
           away: game.away_team,
           win: bestWin,
-          total: bestTotal
+          total: bestTotal || null
         });
       }
     });
 
     res.status(200).json(games);
+
   } catch (e) {
     res.status(500).json([]);
   }
