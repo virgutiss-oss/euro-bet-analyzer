@@ -54,13 +54,14 @@ export default async function handler(req, res) {
         });
       });
 
-      // ✅ viena rungtynė = vienas objektas
-      if (bestWin && bestTotal) {
+      // ✅ VIENA RUNGTYNĖ = VIENAS OBJEKTAS
+      // ⚠️ totals GALI BŪTI NULL (tai ir buvo problema)
+      if (bestWin) {
         games.push({
           home: game.home_team,
           away: game.away_team,
           win: bestWin,
-          total: bestTotal
+          total: bestTotal // gali būti null
         });
       }
     });
