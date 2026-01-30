@@ -1,4 +1,4 @@
-const LEAGUE_AVG = {
+const LEAGUE_CFG = {
   basketball_nba: { avg: 228, weight: 0.35, dead: 4 },
   basketball_euroleague: { avg: 164, weight: 0.22, dead: 3 },
   basketball_eurocup: { avg: 166, weight: 0.22, dead: 3 },
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   const { league } = req.query;
   if (!league) return res.json([]);
 
-  const cfg = LEAGUE_AVG[league];
+  const cfg = LEAGUE_CFG[league];
   if (!cfg) return res.json([]);
 
   const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
@@ -41,16 +41,18 @@ export default async function handler(req, res) {
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
 
-          // 🏷 WIN / LOSE
+          // =====================
+          // 🏷 H2H (Win / Lose)
+          // =====================
           if (m.key === "h2h") {
             m.outcomes.forEach(o => {
-              const p = Math.round(100 / o.price);
+              const prob = Math.round(100 / o.price);
 
-              if (!bestWin || p > bestWin.probability) {
+              if (!bestWin || prob > bestWin.probability) {
                 bestWin = {
                   pick: o.name,
                   odds: o.price,
-                  probability: p
+                  probability: prob
                 };
               }
 
@@ -60,33 +62,48 @@ export default async function handler(req, res) {
             });
           }
 
-          // 🏷 OVER / UNDER (PRO)
+          // =====================
+          // 🏷 OVER / UNDER (FILTRUOTAS)
+          // =====================
           if (m.key === "totals") {
             const over = m.outcomes.find(o => o.name.toLowerCase().includes("over"));
             const under = m.outcomes.find(o => o.name.toLowerCase().includes("under"));
             if (!over || !under) return;
 
-            // ❌ rinkos neapsisprendimas
+            // ❌ rinka neapsisprendusi
             if (Math.abs(over.price - under.price) < 0.15) return;
 
             [over, under].forEach(o => {
+              const isOver = o.name.toLowerCase().includes("over");
+
+              // ❌ minimalus koficientas
+              if (o.price < 1.55) return;
+
               const base = 100 / o.price;
               const diff = cfg.avg - o.point;
+
+              // ❌ per arti lygos vidurkio
               if (Math.abs(diff) < cfg.dead) return;
 
-              const isOver = o.name.toLowerCase().includes("over");
               let prob = base + diff * cfg.weight;
 
-              // ⭐ favoritų under bias
+              // ⭐ favorito under bias
               if (!isOver && favoriteOdds && favoriteOdds < 1.4) {
                 prob += 5;
               }
 
-              // ❌ Over griežtesnis
+              // ❌ labai didelis favoritas – no over
+              if (isOver && favoriteOdds && favoriteOdds < 1.25) return;
+
+              // ❌ griežtesni slenksčiai
               if (isOver && prob < 62) return;
               if (!isOver && prob < 58) return;
 
-              prob = Math.max(55, Math.min(75, Math.round(prob)));
+              // ✅ cap’ai
+              if (isOver) prob = Math.min(prob, 70);
+              if (!isOver) prob = Math.min(prob, 72);
+
+              prob = Math.round(prob);
 
               if (!bestTotal || prob > bestTotal.probability) {
                 bestTotal = {
@@ -101,6 +118,7 @@ export default async function handler(req, res) {
         });
       });
 
+      // 👉 paliekam jei yra bent vienas rimtas pickas
       if (bestWin || bestTotal) {
         games.push({
           home: game.home_team,
@@ -112,7 +130,9 @@ export default async function handler(req, res) {
       }
     });
 
+    // rūšiuojam pagal datą
     games.sort((a, b) => new Date(a.date) - new Date(b.date));
+
     res.status(200).json(games);
 
   } catch (e) {
