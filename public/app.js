@@ -30,7 +30,7 @@ function showSoccer() {
   output.innerHTML = "Pasirink futbolo lygą";
 }
 
-// 📡 API KVIETIMAS
+// 📡 API
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
   leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = true);
@@ -52,17 +52,27 @@ async function loadOdds(league) {
       const div = document.createElement("div");
       div.className = "game";
 
+      const winProb = g.win.probability;
+      const totalProb = g.total ? g.total.probability : 0;
+
+      const winClass = winProb >= totalProb ? "market best-pick" : "market";
+      const totalClass = totalProb > winProb ? "market best-pick" : "market";
+
       div.innerHTML = `
         <b>${g.home} vs ${g.away}</b>
 
-        <div class="market">
+        <div class="${winClass}">
           🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
         </div>
 
-        <div class="market">
-          🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})  
-          📏 Linija: ${g.total.line} – ${g.total.probability}%
-        </div>
+        ${
+          g.total
+            ? `<div class="${totalClass}">
+                🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})
+                📏 Linija: ${g.total.line} – ${g.total.probability}%
+              </div>`
+            : ""
+        }
       `;
 
       output.appendChild(div);
