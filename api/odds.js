@@ -19,11 +19,11 @@ export default async function handler(req, res) {
       let bestTotal = null;
 
       game.bookmakers?.forEach(bm => {
-        bm.markets?.forEach(market => {
+        bm.markets?.forEach(m => {
 
-          /* ===== WIN / LOSE (h2h) ===== */
-          if (market.key === "h2h") {
-            market.outcomes?.forEach(o => {
+          // WIN / LOSE
+          if (m.key === "h2h") {
+            m.outcomes.forEach(o => {
               if (!bestWin || o.price < bestWin.odds) {
                 bestWin = {
                   pick: o.name,
@@ -34,48 +34,15 @@ export default async function handler(req, res) {
             });
           }
 
-          /* ===== OVER / UNDER (PRO, BET SAUGU) ===== */
-          if (market.key === "totals") {
-            market.outcomes?.forEach(o => {
-              if (!o.point || !o.price) return;
-
-              const line = Number(o.point);
-              const odds = Number(o.price);
-
-              /* 🛡 SAUGOS FILTRAI */
-              if (odds < 1.4 || odds > 2.2) return; // per ekstremalūs
-              if (league.includes("basketball")) {
-                if (line < 130 || line > 210) return;
-              }
-              if (league.includes("soccer")) {
-                if (line < 1 || line > 5.5) return;
-              }
-
-              /* 📊 „PRO“ tikimybė */
-              let probability = 100 / odds;
-
-              // švelni korekcija pagal liniją
-              if (league.includes("basketball")) {
-                if (line > 175) probability -= 3;
-                if (line < 155) probability -= 3;
-              }
-
-              if (league.includes("soccer")) {
-                if (line >= 3.5) probability -= 4;
-                if (line <= 1.5) probability -= 2;
-              }
-
-              probability = Math.round(probability);
-
-              if (
-                !bestTotal ||
-                probability > bestTotal.probability
-              ) {
+          // OVER / UNDER
+          if (m.key === "totals") {
+            m.outcomes.forEach(o => {
+              if (!bestTotal || o.price < bestTotal.odds) {
                 bestTotal = {
                   pick: o.name,
-                  odds,
-                  line,
-                  probability
+                  odds: o.price,
+                  line: o.point,
+                  probability: Math.round(100 / o.price)
                 };
               }
             });
@@ -86,10 +53,9 @@ export default async function handler(req, res) {
 
       if (bestWin && bestTotal) {
         games.push({
-          id: game.id,
-          commence_time: game.commence_time,
           home: game.home_team,
           away: game.away_team,
+          commence_time: game.commence_time || null,
           win: bestWin,
           total: bestTotal
         });
@@ -99,7 +65,6 @@ export default async function handler(req, res) {
     res.status(200).json(games);
 
   } catch (e) {
-    console.error(e);
     res.status(500).json([]);
   }
 }
