@@ -7,7 +7,10 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(url);
     const data = await r.json();
-    if (!Array.isArray(data)) return res.json([]);
+
+    if (!Array.isArray(data)) {
+      return res.status(200).json([]);
+    }
 
     const games = [];
 
@@ -15,13 +18,12 @@ export default async function handler(req, res) {
       let bestWin = null;
       let bestTotal = null;
 
-      let totalLines = [];
-
       game.bookmakers?.forEach(bm => {
-        bm.markets?.forEach(m => {
+        bm.markets?.forEach(market => {
 
-          if (m.key === "h2h") {
-            m.outcomes.forEach(o => {
+          /* ===== WIN / LOSE (h2h) ===== */
+          if (market.key === "h2h") {
+            market.outcomes?.forEach(o => {
               if (!bestWin || o.price < bestWin.odds) {
                 bestWin = {
                   pick: o.name,
@@ -32,18 +34,48 @@ export default async function handler(req, res) {
             });
           }
 
-          if (m.key === "totals") {
-            m.outcomes.forEach(o => {
-              if (typeof o.point === "number") {
-                totalLines.push(o.point);
+          /* ===== OVER / UNDER (PRO, BET SAUGU) ===== */
+          if (market.key === "totals") {
+            market.outcomes?.forEach(o => {
+              if (!o.point || !o.price) return;
+
+              const line = Number(o.point);
+              const odds = Number(o.price);
+
+              /* 🛡 SAUGOS FILTRAI */
+              if (odds < 1.4 || odds > 2.2) return; // per ekstremalūs
+              if (league.includes("basketball")) {
+                if (line < 130 || line > 210) return;
+              }
+              if (league.includes("soccer")) {
+                if (line < 1 || line > 5.5) return;
               }
 
-              if (!bestTotal || o.price < bestTotal.odds) {
+              /* 📊 „PRO“ tikimybė */
+              let probability = 100 / odds;
+
+              // švelni korekcija pagal liniją
+              if (league.includes("basketball")) {
+                if (line > 175) probability -= 3;
+                if (line < 155) probability -= 3;
+              }
+
+              if (league.includes("soccer")) {
+                if (line >= 3.5) probability -= 4;
+                if (line <= 1.5) probability -= 2;
+              }
+
+              probability = Math.round(probability);
+
+              if (
+                !bestTotal ||
+                probability > bestTotal.probability
+              ) {
                 bestTotal = {
                   pick: o.name,
-                  odds: o.price,
-                  line: o.point,
-                  probability: Math.round(100 / o.price)
+                  odds,
+                  line,
+                  probability
                 };
               }
             });
@@ -52,29 +84,22 @@ export default async function handler(req, res) {
         });
       });
 
-      if (bestWin && bestTotal && totalLines.length > 0) {
-        const avgTotal =
-          totalLines.reduce((a, b) => a + b, 0) / totalLines.length;
-
-        const projected = Number(avgTotal.toFixed(1));
-
+      if (bestWin && bestTotal) {
         games.push({
+          id: game.id,
+          commence_time: game.commence_time,
           home: game.home_team,
           away: game.away_team,
-          commence_time: game.commence_time,
-
           win: bestWin,
-          total: bestTotal,
-
-          projectedTotal: projected,
-          rangeLow: Math.round(projected - 14),
-          rangeHigh: Math.round(projected + 14)
+          total: bestTotal
         });
       }
     });
 
     res.status(200).json(games);
+
   } catch (e) {
+    console.error(e);
     res.status(500).json([]);
   }
 }
