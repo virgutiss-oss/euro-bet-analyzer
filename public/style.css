@@ -1,29 +1,58 @@
 body {
-  font-family: Arial, sans-serif;
-  background: #0f172a;
+  font-family: system-ui, Arial, sans-serif;
+  background: linear-gradient(180deg, #020617, #0f172a);
   color: #e5e7eb;
-  padding: 20px;
+  padding: 24px;
 }
 
 h1 {
-  margin-bottom: 16px;
-}
-
-.buttons {
-  margin-bottom: 16px;
+  font-size: 32px;
+  margin-bottom: 20px;
 }
 
 .buttons button {
-  font-size: 18px;
-  padding: 10px 18px;
-  margin-right: 10px;
+  font-size: 20px;
+  padding: 12px 22px;
+  margin-right: 12px;
+  border-radius: 8px;
+  border: none;
   cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+
+.buttons button:hover {
+  background: #1d4ed8;
+}
+
+#leagues {
+  margin: 20px 0;
+}
+
+#leagues button {
+  margin: 6px;
+  padding: 10px 16px;
+  font-size: 17px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #334155;
+  color: #e5e7eb;
+}
+
+#leagues button:hover {
+  background: #475569;
 }
 
 .game {
   background: #020617;
   border: 1px solid #1e293b;
-  padding: 14px;
-  margin: 12px 0;
-  border-radius: 6px;
+  padding: 18px;
+  margin: 16px 0;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+.market {
+  margin-top: 8px;
 }
