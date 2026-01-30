@@ -1,3 +1,4 @@
+/* ====== GLOBAL ====== */
 body {
   font-family: system-ui, Arial, sans-serif;
   background: linear-gradient(180deg, #020617, #0f172a);
@@ -10,6 +11,7 @@ h1 {
   margin-bottom: 20px;
 }
 
+/* ====== BUTTONS ====== */
 .buttons button {
   font-size: 20px;
   padding: 12px 22px;
@@ -25,6 +27,7 @@ h1 {
   background: #1d4ed8;
 }
 
+/* ====== LEAGUES ====== */
 #leagues {
   margin: 20px 0;
 }
@@ -44,6 +47,7 @@ h1 {
   background: #475569;
 }
 
+/* ====== GAME CARD ====== */
 .game {
   background: #020617;
   border: 1px solid #1e293b;
@@ -57,12 +61,37 @@ h1 {
   margin-top: 8px;
 }
 
-/* 🔥 PROJECTED TOTAL – NAUJAS, SAUGUS PRIDĖJIMAS */
-.projected {
-  margin-top: 10px;
-  padding: 10px;
-  background: #020617;
-  border-left: 4px solid #22c55e;
-  font-size: 15px;
-  color: #bbf7d0;
+/* ====== PROBABILITY COLORS ====== */
+.prob-high {
+  color: #22c55e; /* žalia */
+  font-weight: bold;
+}
+
+.prob-mid {
+  color: #facc15; /* geltona */
+  font-weight: bold;
+}
+
+.prob-low {
+  color: #ef4444; /* raudona */
+  font-weight: bold;
+}
+
+/* ====== TOP 3 ====== */
+.top3 {
+  border: 2px solid gold;
+  padding: 14px;
+  margin-bottom: 20px;
+  background: #0f172a;
+  border-radius: 10px;
+}
+
+.top3 h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: gold;
+}
+
+.top-pick {
+  margin-bottom: 6px;
 }
