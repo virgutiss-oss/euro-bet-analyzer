@@ -1,9 +1,8 @@
 const output = document.getElementById("output");
 const leaguesDiv = document.getElementById("leagues");
 
-// ====== LYGOS ======
+/* ===== SPORTO PASIRINKIMAS ===== */
 
-// 🏀 KREPŠINIS
 function showBasketball() {
   leaguesDiv.innerHTML = `
     <button onclick="loadOdds('basketball_nba')">NBA</button>
@@ -18,21 +17,38 @@ function showBasketball() {
   output.innerHTML = "Pasirink krepšinio lygą";
 }
 
-// ⚽ FUTBOLAS
 function showSoccer() {
   leaguesDiv.innerHTML = `
     <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
     <button onclick="loadOdds('soccer_uefa_europa_league')">Europa League</button>
     <button onclick="loadOdds('soccer_epl')">Premier League</button>
-    <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
     <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
     <button onclick="loadOdds('soccer_france_ligue_one')">Ligue 1</button>
+    <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
     <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
   `;
   output.innerHTML = "Pasirink futbolo lygą";
 }
 
-// ====== API ======
+/* ===== PAGALBINĖS ===== */
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString("lt-LT", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function colorByPercent(p) {
+  if (p >= 70) return "green";
+  if (p >= 60) return "yellow";
+  return "red";
+}
+
+/* ===== API KVIETIMAS ===== */
 
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
@@ -40,7 +56,7 @@ async function loadOdds(league) {
 
   try {
     const res = await fetch(`/api/odds?league=${league}`);
-    const data = await res.json();
+    let data = await res.json();
 
     leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = false);
 
@@ -49,56 +65,62 @@ async function loadOdds(league) {
       return;
     }
 
+    /* ===== RIKIAVIMAS PAGAL DATĄ ===== */
+    data.sort((a, b) =>
+      new Date(a.commence_time) - new Date(b.commence_time)
+    );
+
+    /* ===== FILTRAS ≥ 60% ===== */
+    const filtered = data.filter(
+      g => g.total && g.total.probability >= 60
+    );
+
     output.innerHTML = "";
 
-    // ===== TOP 3 PAGAL DIDŽIAUSIĄ % (WIN) =====
-    const top3 = [...data]
-      .sort((a, b) => b.win.probability - a.win.probability)
-      .slice(0, 3);
+    /* ===== TOP 3 ŠIANDIEN ===== */
+    const today = new Date().toDateString();
+    const todayGames = filtered.filter(
+      g => new Date(g.commence_time).toDateString() === today
+    );
 
-    const topDiv = document.createElement("div");
-    topDiv.className = "top3";
-    topDiv.innerHTML = `<h3>🔥 TOP 3 šiandien pagal %</h3>`;
+    if (todayGames.length > 0) {
+      const top3 = [...todayGames]
+        .sort((a, b) => b.total.probability - a.total.probability)
+        .slice(0, 3);
 
-    top3.forEach(g => {
-      topDiv.innerHTML += `
-        <div class="top-pick">
-          <b>${g.home} vs ${g.away}</b><br>
-          ${g.win.pick} – ${g.win.probability}%
-        </div>
-      `;
-    });
+      const topDiv = document.createElement("div");
+      topDiv.className = "game";
+      topDiv.innerHTML = `<h2>🔥 TOP 3 šiandien (Over/Under)</h2>`;
 
-    output.appendChild(topDiv);
+      top3.forEach(g => {
+        topDiv.innerHTML += `
+          <div class="market ${colorByPercent(g.total.probability)}">
+            <b>${g.home} vs ${g.away}</b><br>
+            ${g.total.pick} ${g.total.line} – ${g.total.odds}
+            (<b>${g.total.probability}%</b>)
+          </div>
+        `;
+      });
 
-    // ===== VISOS RUNGTYNĖS =====
-    data.forEach(g => {
+      output.appendChild(topDiv);
+    }
+
+    /* ===== VISOS RUNG TYNĖS ===== */
+    filtered.forEach(g => {
       const div = document.createElement("div");
       div.className = "game";
 
-      const date = g.commence_time
-        ? new Date(g.commence_time).toLocaleString("lt-LT", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-          })
-        : "";
-
       div.innerHTML = `
-        <div class="date">📅 ${date}</div>
-
-        <b>${g.home} vs ${g.away}</b>
+        <b>${g.home} vs ${g.away}</b><br>
+        📅 ${formatDate(g.commence_time)}
 
         <div class="market">
-          🏷 Win/Lose:
-          <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
+          🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
         </div>
 
-        <div class="market">
-          🏷 Over/Under:
-          <b>${g.total.pick}</b> (${g.total.odds})
-          📏 ${g.total.line} – ${g.total.probability}%
+        <div class="market ${colorByPercent(g.total.probability)}">
+          🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})  
+          📏 ${g.total.line} – <b>${g.total.probability}%</b>
         </div>
       `;
 
