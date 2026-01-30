@@ -8,54 +8,62 @@ export default async function handler(req, res) {
     }
 
     const SPORT_MAP = {
-      basketball: "basketball_nba",
-      soccer: "soccer_uefa_champs_league"
+      basketball: "basketball",
+      soccer: "soccer"
     };
 
-    const sportKey = SPORT_MAP[sport];
-
-    if (!sportKey) {
+    const sportGroup = SPORT_MAP[sport];
+    if (!sportGroup) {
       return res.status(400).json({ error: "Blogas sportas" });
     }
 
-    const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`;
+    const sportsRes = await fetch(
+      `https://api.the-odds-api.com/v4/sports?apiKey=${API_KEY}`
+    );
+    const sports = await sportsRes.json();
 
-    const r = await fetch(url);
-    const data = await r.json();
+    const allowedSports = sports
+      .filter(s => s.key.startsWith(sportGroup))
+      .map(s => s.key);
 
     let games = [];
 
-    data.forEach(match => {
-      const home = match.home_team;
-      const away = match.away_team;
+    for (const sportKey of allowedSports) {
+      const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`;
+      const r = await fetch(url);
+      const data = await r.json();
 
-      const bookmaker = match.bookmakers?.[0];
-      if (!bookmaker) return;
+      data.forEach(match => {
+        const bookmaker = match.bookmakers?.[0];
+        if (!bookmaker) return;
 
-      const h2h = bookmaker.markets.find(m => m.key === "h2h");
-      const totals = bookmaker.markets.find(m => m.key === "totals");
+        const h2h = bookmaker.markets.find(m => m.key === "h2h");
+        const totals = bookmaker.markets.find(m => m.key === "totals");
+        if (!h2h || !totals) return;
 
-      if (!h2h || !totals) return;
+        const bestWin = h2h.outcomes.reduce((a, b) =>
+          a.price > b.price ? a : b
+        );
 
-      const bestWin = h2h.outcomes.reduce((a, b) => a.price > b.price ? a : b);
-      const total = totals.outcomes[0];
+        const total = totals.outcomes[0];
 
-      games.push({
-        home,
-        away,
-        win: {
-          pick: bestWin.name,
-          odds: bestWin.price,
-          probability: Math.round((1 / bestWin.price) * 100)
-        },
-        total: {
-          pick: `${total.name} ${total.point}`,
-          odds: total.price,
-          probability: Math.round((1 / total.price) * 100),
-          line: total.point
-        }
+        games.push({
+          home: match.home_team,
+          away: match.away_team,
+          win: {
+            pick: bestWin.name,
+            odds: bestWin.price,
+            probability: Math.round((1 / bestWin.price) * 100)
+          },
+          total: {
+            pick: `${total.name} ${total.point}`,
+            odds: total.price,
+            probability: Math.round((1 / total.price) * 100),
+            line: total.point
+          }
+        });
       });
-    });
+    }
 
     res.status(200).json(games);
 
