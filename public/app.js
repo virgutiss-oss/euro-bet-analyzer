@@ -37,7 +37,7 @@ async function loadOdds(league) {
 
   try {
     const res = await fetch(`/api/odds?league=${league}`);
-    const data = await res.json();
+    let data = await res.json();
 
     leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = false);
 
@@ -46,31 +46,52 @@ async function loadOdds(league) {
       return;
     }
 
+    // 🔥 RŪŠIAVIMAS PAGAL DIDŽIAUSIĄ %
+    data.sort((a, b) => {
+      const aMax = Math.max(
+        a.win?.probability || 0,
+        a.total?.probability || 0
+      );
+      const bMax = Math.max(
+        b.win?.probability || 0,
+        b.total?.probability || 0
+      );
+      return bMax - aMax;
+    });
+
     output.innerHTML = "";
 
     data.forEach(g => {
       const div = document.createElement("div");
       div.className = "game";
 
-      const winProb = g.win.probability;
-      const totalProb = g.total ? g.total.probability : 0;
+      const highlightWin =
+        g.win.probability >= (g.total?.probability || 0)
+          ? "🔥"
+          : "";
 
-      const winClass = winProb >= totalProb ? "market best-pick" : "market";
-      const totalClass = totalProb > winProb ? "market best-pick" : "market";
+      const highlightTotal =
+        g.total && g.total.probability > g.win.probability
+          ? "🔥"
+          : "";
 
       div.innerHTML = `
         <b>${g.home} vs ${g.away}</b>
 
-        <div class="${winClass}">
-          🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
+        <div class="market">
+          🏷 Win/Lose ${highlightWin}
+          <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
         </div>
 
         ${
           g.total
-            ? `<div class="${totalClass}">
-                🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})
-                📏 Linija: ${g.total.line} – ${g.total.probability}%
-              </div>`
+            ? `
+          <div class="market">
+            🏷 Over/Under ${highlightTotal}
+            <b>${g.total.pick}</b> (${g.total.odds})
+            📏 ${g.total.line} – ${g.total.probability}%
+          </div>
+        `
             : ""
         }
       `;
