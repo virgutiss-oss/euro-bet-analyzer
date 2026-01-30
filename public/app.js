@@ -1,6 +1,16 @@
 const output = document.getElementById("output");
 const leaguesDiv = document.getElementById("leagues");
 
+const MIN_PROBABILITY = 60;
+
+// 🎨 SPALVOS PAGAL %
+function getColorClass(p) {
+  if (p >= 70) return "prob-strong";
+  if (p >= 60) return "prob-good";
+  if (p >= 55) return "prob-mid";
+  return "prob-bad";
+}
+
 // 🏀 KREPŠINIS
 function showBasketball() {
   leaguesDiv.innerHTML = `
@@ -41,12 +51,26 @@ async function loadOdds(league) {
 
     leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = false);
 
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!Array.isArray(data)) {
       output.innerHTML = "❌ Nėra duomenų";
       return;
     }
 
-    // 🔥 RŪŠIAVIMAS PAGAL DIDŽIAUSIĄ %
+    // 🔥 FILTRAS ≥ 60%
+    data = data.filter(g => {
+      const maxP = Math.max(
+        g.win?.probability || 0,
+        g.total?.probability || 0
+      );
+      return maxP >= MIN_PROBABILITY;
+    });
+
+    if (data.length === 0) {
+      output.innerHTML = "❌ Nėra pasirinkimų ≥ 60%";
+      return;
+    }
+
+    // 🔝 RŪŠIAVIMAS PAGAL DIDŽIAUSIĄ %
     data.sort((a, b) => {
       const aMax = Math.max(
         a.win?.probability || 0,
@@ -65,29 +89,25 @@ async function loadOdds(league) {
       const div = document.createElement("div");
       div.className = "game";
 
-      const highlightWin =
-        g.win.probability >= (g.total?.probability || 0)
-          ? "🔥"
-          : "";
+      const winClass = getColorClass(g.win.probability);
+      const totalClass = g.total ? getColorClass(g.total.probability) : "";
 
-      const highlightTotal =
-        g.total && g.total.probability > g.win.probability
-          ? "🔥"
-          : "";
+      const bestIsWin =
+        g.win.probability >= (g.total?.probability || 0);
 
       div.innerHTML = `
         <b>${g.home} vs ${g.away}</b>
 
-        <div class="market">
-          🏷 Win/Lose ${highlightWin}
+        <div class="market ${winClass}">
+          🏷 Win/Lose ${bestIsWin ? "🔥" : ""}
           <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
         </div>
 
         ${
           g.total
             ? `
-          <div class="market">
-            🏷 Over/Under ${highlightTotal}
+          <div class="market ${totalClass}">
+            🏷 Over/Under ${!bestIsWin ? "🔥" : ""}
             <b>${g.total.pick}</b> (${g.total.odds})
             📏 ${g.total.line} – ${g.total.probability}%
           </div>
