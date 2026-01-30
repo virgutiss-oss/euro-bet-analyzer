@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
 
-          // ✅ WIN / LOSE (nekeista)
+          // ✅ WIN / LOSE
           if (m.key === "h2h") {
             m.outcomes.forEach(o => {
               const p = Math.round(100 / o.price);
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
             });
           }
 
-          // ✅ OVER / UNDER (PRO, SAUGUS)
+          // ✅ OVER / UNDER (PRO)
           if (m.key === "totals") {
             m.outcomes.forEach(o => {
               if (!o.point) return;
@@ -64,21 +64,15 @@ export default async function handler(req, res) {
               const base = 100 / o.price;
               const diff = cfg.avg - o.point;
 
-              // 🛑 DEAD ZONE
               if (Math.abs(diff) < cfg.dead) return;
 
               const isOver = o.name.toLowerCase().includes("over");
               const bias = isOver ? 1.05 : 0.95;
 
-              let adjusted =
-                base + diff * cfg.weight * bias;
-
+              let adjusted = base + diff * cfg.weight * bias;
               adjusted = Math.max(50, Math.min(75, Math.round(adjusted)));
 
-              if (
-                !bestTotal ||
-                adjusted > bestTotal.probability
-              ) {
+              if (!bestTotal || adjusted > bestTotal.probability) {
                 bestTotal = {
                   pick: o.name,
                   odds: o.price,
@@ -95,11 +89,15 @@ export default async function handler(req, res) {
         games.push({
           home: game.home_team,
           away: game.away_team,
+          date: game.commence_time, // 📅 SVARBU
           win: bestWin,
           total: bestTotal
         });
       }
     });
+
+    // 📊 RIKIAVIMAS PAGAL DATĄ (ARTIMIAUSIOS VIRŠUJE)
+    games.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     res.status(200).json(games);
   } catch (e) {
