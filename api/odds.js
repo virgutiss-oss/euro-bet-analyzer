@@ -1,74 +1,74 @@
 export default async function handler(req, res) {
+  const { league } = req.query;
+
+  if (!league) {
+    return res.status(400).json([]);
+  }
+
+  const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
+
   try {
-    const { sport } = req.query;
-    const API_KEY = process.env.ODDS_API_KEY;
+    const r = await fetch(url);
+    const data = await r.json();
 
-    if (!sport) {
-      return res.status(400).json({ error: "Blogas sportas" });
+    if (!Array.isArray(data)) {
+      return res.status(200).json([]);
     }
 
-    const SPORT_MAP = {
-      basketball: "basketball",
-      soccer: "soccer"
-    };
+    const games = [];
 
-    const sportGroup = SPORT_MAP[sport];
-    if (!sportGroup) {
-      return res.status(400).json({ error: "Blogas sportas" });
-    }
+    data.forEach(game => {
+      let bestWin = null;
+      let bestTotal = null;
 
-    const sportsRes = await fetch(
-      `https://api.the-odds-api.com/v4/sports?apiKey=${API_KEY}`
-    );
-    const sports = await sportsRes.json();
+      game.bookmakers?.forEach(bm => {
+        bm.markets?.forEach(m => {
 
-    const allowedSports = sports
-      .filter(s => s.key.startsWith(sportGroup))
-      .map(s => s.key);
-
-    let games = [];
-
-    for (const sportKey of allowedSports) {
-      const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`;
-      const r = await fetch(url);
-      const data = await r.json();
-
-      data.forEach(match => {
-        const bookmaker = match.bookmakers?.[0];
-        if (!bookmaker) return;
-
-        const h2h = bookmaker.markets.find(m => m.key === "h2h");
-        const totals = bookmaker.markets.find(m => m.key === "totals");
-        if (!h2h || !totals) return;
-
-        const bestWin = h2h.outcomes.reduce((a, b) =>
-          a.price > b.price ? a : b
-        );
-
-        const total = totals.outcomes[0];
-
-        games.push({
-          home: match.home_team,
-          away: match.away_team,
-          win: {
-            pick: bestWin.name,
-            odds: bestWin.price,
-            probability: Math.round((1 / bestWin.price) * 100)
-          },
-          total: {
-            pick: `${total.name} ${total.point}`,
-            odds: total.price,
-            probability: Math.round((1 / total.price) * 100),
-            line: total.point
+          // 🏷 WIN / LOSE
+          if (m.key === "h2h") {
+            m.outcomes.forEach(o => {
+              if (!bestWin || o.price < bestWin.odds) {
+                bestWin = {
+                  pick: o.name,
+                  odds: o.price,
+                  probability: Math.round(100 / o.price)
+                };
+              }
+            });
           }
+
+          // 📊 OVER / UNDER
+          if (m.key === "totals") {
+            m.outcomes.forEach(o => {
+              if (!bestTotal || o.price < bestTotal.odds) {
+                bestTotal = {
+                  pick: o.name,
+                  odds: o.price,
+                  line: o.point,
+                  probability: Math.round(100 / o.price)
+                };
+              }
+            });
+          }
+
         });
       });
-    }
+
+      // ✅ viena rungtynė = vienas objektas
+      if (bestWin && bestTotal) {
+        games.push({
+          home: game.home_team,
+          away: game.away_team,
+          win: bestWin,
+          total: bestTotal
+        });
+      }
+    });
 
     res.status(200).json(games);
 
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Serverio klaida" });
+    console.error("API ERROR:", e);
+    res.status(500).json([]);
   }
 }
