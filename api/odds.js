@@ -1,29 +1,30 @@
 const LEAGUE_AVG = {
   // 🏀 KREPŠINIS
-  basketball_nba: 228,
-  basketball_euroleague: 164,
-  basketball_eurocup: 166,
-  basketball_lithuania_lkl: 158,
-  basketball_spain_acb: 162,
-  basketball_germany_bbl: 170,
-  basketball_france_proa: 168,
-  basketball_italy_lega_a: 165,
+  basketball_nba: { avg: 228, weight: 0.35, dead: 4 },
+  basketball_euroleague: { avg: 164, weight: 0.22, dead: 3 },
+  basketball_eurocup: { avg: 166, weight: 0.22, dead: 3 },
+  basketball_lithuania_lkl: { avg: 158, weight: 0.2, dead: 3 },
+  basketball_spain_acb: { avg: 162, weight: 0.22, dead: 3 },
+  basketball_germany_bbl: { avg: 170, weight: 0.25, dead: 3 },
+  basketball_france_proa: { avg: 168, weight: 0.25, dead: 3 },
+  basketball_italy_lega_a: { avg: 165, weight: 0.22, dead: 3 },
 
   // ⚽ FUTBOLAS
-  soccer_epl: 2.9,
-  soccer_germany_bundesliga: 3.1,
-  soccer_italy_serie_a: 2.6,
-  soccer_france_ligue_one: 2.4,
-  soccer_spain_la_liga: 2.5,
-  soccer_uefa_champs_league: 2.8,
-  soccer_uefa_europa_league: 2.7
+  soccer_epl: { avg: 2.9, weight: 7, dead: 0.15 },
+  soccer_germany_bundesliga: { avg: 3.1, weight: 7.5, dead: 0.15 },
+  soccer_italy_serie_a: { avg: 2.6, weight: 6, dead: 0.15 },
+  soccer_france_ligue_one: { avg: 2.4, weight: 5.5, dead: 0.15 },
+  soccer_spain_la_liga: { avg: 2.5, weight: 6, dead: 0.15 },
+  soccer_uefa_champs_league: { avg: 2.8, weight: 6.5, dead: 0.15 },
+  soccer_uefa_europa_league: { avg: 2.7, weight: 6.3, dead: 0.15 }
 };
 
 export default async function handler(req, res) {
   const { league } = req.query;
   if (!league) return res.status(400).json([]);
 
-  const avg = LEAGUE_AVG[league] || null;
+  const cfg = LEAGUE_AVG[league];
+  if (!cfg) return res.json([]);
 
   const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
 
@@ -41,7 +42,7 @@ export default async function handler(req, res) {
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
 
-          // ✅ WIN / LOSE
+          // ✅ WIN / LOSE (nekeista)
           if (m.key === "h2h") {
             m.outcomes.forEach(o => {
               const p = Math.round(100 / o.price);
@@ -55,19 +56,28 @@ export default async function handler(req, res) {
             });
           }
 
-          // ✅ OVER / UNDER (PRO)
-          if (m.key === "totals" && avg) {
+          // ✅ OVER / UNDER (PRO, SAUGUS)
+          if (m.key === "totals") {
             m.outcomes.forEach(o => {
               if (!o.point) return;
 
               const base = 100 / o.price;
-              const diff = avg - o.point;
-              const weight = league.startsWith("basketball") ? 0.35 : 6;
-              const adjusted = Math.round(base + diff * weight);
+              const diff = cfg.avg - o.point;
+
+              // 🛑 DEAD ZONE
+              if (Math.abs(diff) < cfg.dead) return;
+
+              const isOver = o.name.toLowerCase().includes("over");
+              const bias = isOver ? 1.05 : 0.95;
+
+              let adjusted =
+                base + diff * cfg.weight * bias;
+
+              adjusted = Math.max(50, Math.min(75, Math.round(adjusted)));
 
               if (
-                adjusted >= 50 &&
-                (!bestTotal || adjusted > bestTotal.probability)
+                !bestTotal ||
+                adjusted > bestTotal.probability
               ) {
                 bestTotal = {
                   pick: o.name,
