@@ -6,7 +6,11 @@ body {
 }
 
 h1 {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+}
+
+.buttons {
+  margin-bottom: 16px;
 }
 
 .buttons button {
