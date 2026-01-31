@@ -1,13 +1,25 @@
+async function fetchOdds(league, region) {
+  const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=${region}&markets=h2h,totals&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
+  const r = await fetch(url);
+  const data = await r.json();
+  return Array.isArray(data) ? data : [];
+}
+
 export default async function handler(req, res) {
   const { league } = req.query;
   if (!league) return res.status(400).json([]);
 
-  const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
-
   try {
-    const r = await fetch(url);
-    const data = await r.json();
-    if (!Array.isArray(data)) return res.json([]);
+    // 🏀 fallback logika krepšiniui
+    let data = await fetchOdds(league, "eu");
+
+    if (league.startsWith("basketball_") && data.length === 0) {
+      data = await fetchOdds(league, "us");
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return res.status(200).json({ games: [], top3: [] });
+    }
 
     const games = [];
 
@@ -18,7 +30,6 @@ export default async function handler(req, res) {
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
 
-          // WIN / LOSE
           if (m.key === "h2h") {
             m.outcomes.forEach(o => {
               if (!bestWin || o.price < bestWin.odds) {
@@ -31,7 +42,6 @@ export default async function handler(req, res) {
             });
           }
 
-          // OVER / UNDER (jei yra)
           if (m.key === "totals") {
             m.outcomes.forEach(o => {
               if (!bestTotal || o.price < bestTotal.odds) {
@@ -48,7 +58,6 @@ export default async function handler(req, res) {
         });
       });
 
-      // 👇 SVARBU: leidžiam be Over/Under
       if (bestWin) {
         games.push({
           home: game.home_team,
@@ -63,7 +72,6 @@ export default async function handler(req, res) {
       }
     });
 
-    // 🔝 TOP 3 pagal %
     const top3 = [...games]
       .sort((a, b) => b.bestPercent - a.bestPercent)
       .slice(0, 3);
@@ -71,6 +79,6 @@ export default async function handler(req, res) {
     res.status(200).json({ games, top3 });
 
   } catch (e) {
-    res.status(500).json([]);
+    res.status(500).json({ games: [], top3: [] });
   }
 }
