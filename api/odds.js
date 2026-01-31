@@ -7,10 +7,7 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(url);
     const data = await r.json();
-
-    if (!Array.isArray(data)) {
-      return res.status(200).json([]);
-    }
+    if (!Array.isArray(data)) return res.json([]);
 
     const games = [];
 
@@ -20,8 +17,6 @@ export default async function handler(req, res) {
 
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
-
-          // WIN / LOSE
           if (m.key === "h2h") {
             m.outcomes.forEach(o => {
               if (!bestWin || o.price < bestWin.odds) {
@@ -34,7 +29,6 @@ export default async function handler(req, res) {
             });
           }
 
-          // OVER / UNDER
           if (m.key === "totals") {
             m.outcomes.forEach(o => {
               if (!bestTotal || o.price < bestTotal.odds) {
@@ -47,15 +41,14 @@ export default async function handler(req, res) {
               }
             });
           }
-
         });
       });
 
       if (bestWin && bestTotal) {
         games.push({
+          date: game.commence_time,
           home: game.home_team,
           away: game.away_team,
-          commence_time: game.commence_time || null,
           win: bestWin,
           total: bestTotal
         });
@@ -63,7 +56,6 @@ export default async function handler(req, res) {
     });
 
     res.status(200).json(games);
-
   } catch (e) {
     res.status(500).json([]);
   }
