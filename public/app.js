@@ -13,6 +13,7 @@ function showBasketball() {
     <button onclick="loadOdds('basketball_germany_bbl')">Vokietija BBL</button>
     <button onclick="loadOdds('basketball_france_proa')">Prancūzija Pro A</button>
     <button onclick="loadOdds('basketball_italy_lega_a')">Italija Lega A</button>
+    <button onclick="loadOdds('basketball_turkey_super_lig')">🇹🇷 Turkija Super Lig</button>
   `;
   output.innerHTML = "Pasirink krepšinio lygą";
   top3Div.innerHTML = "";
@@ -37,42 +38,57 @@ async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
   top3Div.innerHTML = "";
 
-  const res = await fetch(`/api/odds?league=${league}`);
-  const data = await res.json();
+  try {
+    const res = await fetch(`/api/odds?league=${league}`);
+    const data = await res.json();
 
-  if (!Array.isArray(data) || data.length === 0) {
-    output.innerHTML = "❌ Nėra duomenų";
-    return;
+    if (!Array.isArray(data) || data.length === 0) {
+      output.innerHTML = "❌ Nėra duomenų";
+      return;
+    }
+
+    // 🔥 RIKIAVIMAS PAGAL OVER/UNDER %
+    data.sort((a, b) => b.total.probability - a.total.probability);
+
+    // 🔥 TOP 3
+    const top3 = data.slice(0, 3);
+    top3Div.innerHTML = "🔥 TOP 3 Over/Under pagal %";
+
+    top3.forEach((g, i) => {
+      top3Div.innerHTML += `
+        <div>
+          ${i + 1}. ${g.home} vs ${g.away} – 
+          <b>${g.total.pick}</b> ${g.total.line} (${g.total.probability}%)
+        </div>
+      `;
+    });
+
+    output.innerHTML = "";
+
+    data.forEach(g => {
+      const div = document.createElement("div");
+      div.className = "game";
+
+      const date = new Date(g.date).toLocaleString("lt-LT");
+
+      div.innerHTML = `
+        <b>${g.home} vs ${g.away}</b><br>
+        📅 ${date}
+
+        <div class="market">
+          🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
+        </div>
+
+        <div class="market">
+          🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})  
+          📏 ${g.total.line} – ${g.total.probability}%
+        </div>
+      `;
+
+      output.appendChild(div);
+    });
+
+  } catch (e) {
+    output.innerHTML = "❌ Klaida kraunant duomenis";
   }
-
-  // rikiuojam pagal %
-  data.sort((a, b) => b.total.probability - a.total.probability);
-
-  // TOP 3
-  top3Div.innerHTML = "🔥 TOP 3 pagal Over/Under %";
-
-  output.innerHTML = "";
-
-  data.forEach(g => {
-    const div = document.createElement("div");
-    div.className = "game";
-
-    const date = new Date(g.date).toLocaleString("lt-LT");
-
-    div.innerHTML = `
-      <b>${g.home} vs ${g.away}</b><br>
-      📅 ${date}
-
-      <div class="market">
-        🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
-      </div>
-
-      <div class="market">
-        🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})  
-        📏 ${g.total.line} – ${g.total.probability}%
-      </div>
-    `;
-
-    output.appendChild(div);
-  });
 }
