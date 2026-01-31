@@ -6,14 +6,14 @@ body {
 }
 
 h1 {
-  font-size: 34px;
+  font-size: 32px;
   margin-bottom: 20px;
 }
 
 .buttons button {
-  font-size: 20px;
-  padding: 12px 22px;
-  margin-right: 12px;
+  font-size: 18px;
+  padding: 12px 20px;
+  margin-right: 10px;
   border-radius: 8px;
   border: none;
   cursor: pointer;
@@ -32,7 +32,7 @@ h1 {
 #leagues button {
   margin: 6px;
   padding: 10px 16px;
-  font-size: 17px;
+  font-size: 16px;
   border-radius: 6px;
   border: none;
   cursor: pointer;
@@ -55,4 +55,10 @@ h1 {
 
 .market {
   margin-top: 8px;
+}
+
+.date {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-bottom: 6px;
 }
