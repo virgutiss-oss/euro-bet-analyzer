@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
-          // ✅ WIN / LOSE
+
           if (m.key === "h2h") {
             m.outcomes.forEach(o => {
               if (!bestWin || o.price < bestWin.odds) {
@@ -30,7 +30,6 @@ export default async function handler(req, res) {
             });
           }
 
-          // ✅ OVER / UNDER (jei yra)
           if (m.key === "totals") {
             m.outcomes.forEach(o => {
               if (!bestTotal || o.price < bestTotal.odds) {
@@ -43,17 +42,16 @@ export default async function handler(req, res) {
               }
             });
           }
+
         });
       });
 
-      // 🔥 SVARBIAUSIA DALIS
-      if (bestWin) {
+      if (bestWin && bestTotal) {
         games.push({
           home: game.home_team,
           away: game.away_team,
-          commence_time: game.commence_time,
           win: bestWin,
-          total: bestTotal || null // 👈 jei nėra O/U – bus null
+          total: bestTotal
         });
       }
     });
