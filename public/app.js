@@ -1,67 +1,20 @@
 const output = document.getElementById("output");
 const leaguesDiv = document.getElementById("leagues");
-const top3Div = document.getElementById("top3");
-
-// 🏀 KREPŠINIS
-function showBasketball() {
-  leaguesDiv.innerHTML = `
-    <button onclick="loadOdds('basketball_nba')">NBA</button>
-    <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
-    <button onclick="loadOdds('basketball_eurocup')">EuroCup</button>
-    <button onclick="loadOdds('basketball_lithuania_lkl')">LKL</button>
-    <button onclick="loadOdds('basketball_spain_acb')">Ispanija ACB</button>
-    <button onclick="loadOdds('basketball_germany_bbl')">Vokietija BBL</button>
-    <button onclick="loadOdds('basketball_france_proa')">Prancūzija Pro A</button>
-    <button onclick="loadOdds('basketball_italy_lega_a')">Italija Lega A</button>
-    <button onclick="loadOdds('basketball_turkey_super_lig')">🇹🇷 Turkija Super Lig</button>
-  `;
-  output.innerHTML = "Pasirink krepšinio lygą";
-  top3Div.innerHTML = "";
-}
-
-// ⚽ FUTBOLAS
-function showSoccer() {
-  leaguesDiv.innerHTML = `
-    <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
-    <button onclick="loadOdds('soccer_uefa_europa_league')">Europa League</button>
-    <button onclick="loadOdds('soccer_epl')">Premier League</button>
-    <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
-    <button onclick="loadOdds('soccer_france_ligue_one')">Ligue 1</button>
-    <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
-    <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
-  `;
-  output.innerHTML = "Pasirink futbolo lygą";
-  top3Div.innerHTML = "";
-}
 
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
-  top3Div.innerHTML = "";
+  leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = true);
 
   try {
     const res = await fetch(`/api/odds?league=${league}`);
     const data = await res.json();
 
+    leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = false);
+
     if (!Array.isArray(data) || data.length === 0) {
-      output.innerHTML = "❌ Nėra duomenų";
+      output.innerHTML = "❌ Šiuo metu nėra rungtynių";
       return;
     }
-
-    // 🔥 RIKIAVIMAS PAGAL OVER/UNDER %
-    data.sort((a, b) => b.total.probability - a.total.probability);
-
-    // 🔥 TOP 3
-    const top3 = data.slice(0, 3);
-    top3Div.innerHTML = "🔥 TOP 3 Over/Under pagal %";
-
-    top3.forEach((g, i) => {
-      top3Div.innerHTML += `
-        <div>
-          ${i + 1}. ${g.home} vs ${g.away} – 
-          <b>${g.total.pick}</b> ${g.total.line} (${g.total.probability}%)
-        </div>
-      `;
-    });
 
     output.innerHTML = "";
 
@@ -69,20 +22,32 @@ async function loadOdds(league) {
       const div = document.createElement("div");
       div.className = "game";
 
-      const date = new Date(g.date).toLocaleString("lt-LT");
+      let totalHtml = "";
+      if (g.total) {
+        totalHtml = `
+          <div class="market">
+            🏷 Over/Under: 
+            <b>${g.total.pick}</b> (${g.total.odds})  
+            📏 ${g.total.line} – ${g.total.probability}%
+          </div>
+        `;
+      } else {
+        totalHtml = `
+          <div class="market muted">
+            ℹ️ Over/Under šiai lygai šiuo metu nėra
+          </div>
+        `;
+      }
 
       div.innerHTML = `
-        <b>${g.home} vs ${g.away}</b><br>
-        📅 ${date}
+        <b>${g.home} vs ${g.away}</b>
 
         <div class="market">
-          🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
+          🏷 Win/Lose: 
+          <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
         </div>
 
-        <div class="market">
-          🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})  
-          📏 ${g.total.line} – ${g.total.probability}%
-        </div>
+        ${totalHtml}
       `;
 
       output.appendChild(div);
