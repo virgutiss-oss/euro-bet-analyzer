@@ -2,63 +2,116 @@ body {
   font-family: system-ui, Arial, sans-serif;
   background: linear-gradient(180deg, #020617, #0f172a);
   color: #e5e7eb;
-  padding: 24px;
+  padding: 28px;
 }
 
+/* TITULAS */
 h1 {
-  font-size: 32px;
+  font-size: 38px;
+  margin-bottom: 26px;
+  font-weight: 700;
+}
+
+/* VIRŠUTINIAI SPORTO MYGTUKAI */
+.buttons {
   margin-bottom: 20px;
 }
 
 .buttons button {
-  font-size: 18px;
-  padding: 12px 20px;
-  margin-right: 10px;
-  border-radius: 8px;
+  font-size: 22px;
+  padding: 16px 28px;
+  margin-right: 14px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   background: #2563eb;
   color: white;
+  font-weight: 600;
 }
 
 .buttons button:hover {
   background: #1d4ed8;
 }
 
+/* LYGU MYGTUKAI */
 #leagues {
-  margin: 20px 0;
+  margin: 24px 0;
 }
 
 #leagues button {
-  margin: 6px;
-  padding: 10px 16px;
-  font-size: 16px;
-  border-radius: 6px;
+  margin: 8px;
+  padding: 14px 22px;
+  font-size: 19px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
   background: #334155;
   color: #e5e7eb;
+  font-weight: 500;
 }
 
 #leagues button:hover {
   background: #475569;
 }
 
+/* RUNGTYNIŲ KORTELĖ */
 .game {
   background: #020617;
   border: 1px solid #1e293b;
-  padding: 18px;
-  margin: 16px 0;
-  border-radius: 10px;
-  font-size: 18px;
+  padding: 22px;
+  margin: 18px 0;
+  border-radius: 12px;
+  font-size: 20px;
 }
 
-.market {
-  margin-top: 8px;
+/* RUNGTYNIŲ PAVADINIMAS */
+.game b {
+  font-size: 22px;
 }
 
+/* DATA */
 .date {
-  font-size: 14px;
+  font-size: 16px;
   color: #94a3b8;
-  margin-bottom: 6px;
+  margin: 6px 0 10px 0;
+}
+
+/* MARKETAI */
+.market {
+  margin-top: 10px;
+  font-size: 19px;
+  line-height: 1.4;
+}
+
+/* PARYŠKINIMAI */
+.market b {
+  font-weight: 700;
+}
+
+/* KROVIMO / KLAIDOS TEKSTAS */
+#output {
+  font-size: 20px;
+  margin-top: 20px;
+}
+
+/* RESPONSIVE (telefonui) */
+@media (max-width: 600px) {
+  h1 {
+    font-size: 32px;
+  }
+
+  .buttons button {
+    font-size: 20px;
+    padding: 14px 22px;
+    margin-bottom: 10px;
+  }
+
+  #leagues button {
+    font-size: 18px;
+    padding: 12px 18px;
+  }
+
+  .game {
+    font-size: 18px;
+  }
 }
