@@ -18,6 +18,7 @@ export default async function handler(req, res) {
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
 
+          // WIN / LOSE
           if (m.key === "h2h") {
             m.outcomes.forEach(o => {
               if (!bestWin || o.price < bestWin.odds) {
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
             });
           }
 
+          // OVER / UNDER (jei yra)
           if (m.key === "totals") {
             m.outcomes.forEach(o => {
               if (!bestTotal || o.price < bestTotal.odds) {
@@ -46,17 +48,28 @@ export default async function handler(req, res) {
         });
       });
 
-      if (bestWin && bestTotal) {
+      // 👇 SVARBU: leidžiam be Over/Under
+      if (bestWin) {
         games.push({
           home: game.home_team,
           away: game.away_team,
           win: bestWin,
-          total: bestTotal
+          total: bestTotal || null,
+          bestPercent: Math.max(
+            bestWin.probability,
+            bestTotal ? bestTotal.probability : 0
+          )
         });
       }
     });
 
-    res.status(200).json(games);
+    // 🔝 TOP 3 pagal %
+    const top3 = [...games]
+      .sort((a, b) => b.bestPercent - a.bestPercent)
+      .slice(0, 3);
+
+    res.status(200).json({ games, top3 });
+
   } catch (e) {
     res.status(500).json([]);
   }
