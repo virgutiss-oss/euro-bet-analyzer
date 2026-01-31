@@ -12,6 +12,7 @@ function showBasketball() {
     <button onclick="loadOdds('basketball_germany_bbl')">Vokietija BBL</button>
     <button onclick="loadOdds('basketball_france_proa')">Prancūzija Pro A</button>
     <button onclick="loadOdds('basketball_italy_lega_a')">Italija Lega A</button>
+    <button onclick="loadOdds('basketball_turkey_super_league')">Turkija</button>
   `;
   output.innerHTML = "Pasirink krepšinio lygą";
 }
@@ -30,7 +31,7 @@ function showSoccer() {
   output.innerHTML = "Pasirink futbolo lygą";
 }
 
-// 📡 API
+// 📡 LOAD
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
 
@@ -38,34 +39,49 @@ async function loadOdds(league) {
     const res = await fetch(`/api/odds?league=${league}`);
     const data = await res.json();
 
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!data.games || data.games.length === 0) {
       output.innerHTML = "❌ Nėra duomenų";
       return;
     }
 
     output.innerHTML = "";
 
-    data.forEach(g => {
-      const div = document.createElement("div");
-      div.className = "game";
+    // 🔝 TOP 3
+    if (data.top3 && data.top3.length) {
+      output.innerHTML += `<h2>🔥 TOP 3 šiandien</h2>`;
+      data.top3.forEach(g => renderGame(g, true));
+      output.innerHTML += `<hr>`;
+    }
 
-      div.innerHTML = `
-        <b>${g.home} vs ${g.away}</b>
-
-        <div class="market">
-          🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
-        </div>
-
-        <div class="market">
-          🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})  
-          📏 ${g.total.line} – ${g.total.probability}%
-        </div>
-      `;
-
-      output.appendChild(div);
-    });
+    // VISOS RUNGTYNĖS
+    data.games.forEach(g => renderGame(g, false));
 
   } catch (e) {
     output.innerHTML = "❌ Klaida";
   }
+}
+
+function renderGame(g, isTop) {
+  const div = document.createElement("div");
+  div.className = "game";
+  if (isTop) div.style.border = "2px solid #22c55e";
+
+  div.innerHTML = `
+    <b>${g.home} vs ${g.away}</b>
+
+    <div class="market">
+      🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
+    </div>
+
+    ${
+      g.total
+        ? `<div class="market">
+            🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})
+            📏 ${g.total.line} – ${g.total.probability}%
+          </div>`
+        : `<div class="market">⚠️ Over/Under nėra</div>`
+    }
+  `;
+
+  output.appendChild(div);
 }
