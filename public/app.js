@@ -1,7 +1,6 @@
 const output = document.getElementById("output");
 const leaguesDiv = document.getElementById("leagues");
 
-// 🏀 KREPŠINIS
 function showBasketball() {
   leaguesDiv.innerHTML = `
     <button onclick="loadOdds('basketball_nba')">NBA</button>
@@ -17,7 +16,6 @@ function showBasketball() {
   output.innerHTML = "Pasirink krepšinio lygą";
 }
 
-// ⚽ FUTBOLAS
 function showSoccer() {
   leaguesDiv.innerHTML = `
     <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
@@ -31,7 +29,6 @@ function showSoccer() {
   output.innerHTML = "Pasirink futbolo lygą";
 }
 
-// 📡 LOAD
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
 
@@ -46,17 +43,15 @@ async function loadOdds(league) {
 
     output.innerHTML = "";
 
-    // 🔝 TOP 3
-    if (data.top3 && data.top3.length) {
+    if (data.top3?.length) {
       output.innerHTML += `<h2>🔥 TOP 3 šiandien</h2>`;
       data.top3.forEach(g => renderGame(g, true));
       output.innerHTML += `<hr>`;
     }
 
-    // VISOS RUNGTYNĖS
     data.games.forEach(g => renderGame(g, false));
 
-  } catch (e) {
+  } catch {
     output.innerHTML = "❌ Klaida";
   }
 }
@@ -68,11 +63,9 @@ function renderGame(g, isTop) {
 
   div.innerHTML = `
     <b>${g.home} vs ${g.away}</b>
-
     <div class="market">
       🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
     </div>
-
     ${
       g.total
         ? `<div class="market">
@@ -82,6 +75,5 @@ function renderGame(g, isTop) {
         : `<div class="market">⚠️ Over/Under nėra</div>`
     }
   `;
-
   output.appendChild(div);
 }
