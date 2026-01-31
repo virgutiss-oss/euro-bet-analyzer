@@ -9,7 +9,7 @@ function showBasketball() {
     <button onclick="loadOdds('basketball_lithuania_lkl')">LKL</button>
     <button onclick="loadOdds('basketball_spain_acb')">Ispanija ACB</button>
     <button onclick="loadOdds('basketball_germany_bbl')">Vokietija BBL</button>
-    <button onclick="loadOdds('basketball_france_proa')">Prancūzija Pro A</button>
+    <button onclick="loadOdds('basketball_france_proa')">Pro A</button>
     <button onclick="loadOdds('basketball_italy_lega_a')">Italija Lega A</button>
     <button onclick="loadOdds('basketball_turkey_super_league')">Turkija</button>
   `;
@@ -31,10 +31,12 @@ function showSoccer() {
 
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
+  leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = true);
 
   try {
     const res = await fetch(`/api/odds?league=${league}`);
     const data = await res.json();
+    leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = false);
 
     if (!data.games || data.games.length === 0) {
       output.innerHTML = "❌ Nėra duomenų";
@@ -44,7 +46,7 @@ async function loadOdds(league) {
     output.innerHTML = "";
 
     if (data.top3?.length) {
-      output.innerHTML += `<h2>🔥 TOP 3 šiandien</h2>`;
+      output.innerHTML += `<h2>🔥 TOP 3 ŠIANDIEN</h2>`;
       data.top3.forEach(g => renderGame(g, true));
       output.innerHTML += `<hr>`;
     }
@@ -62,15 +64,15 @@ function renderGame(g, isTop) {
   if (isTop) div.style.border = "2px solid #22c55e";
 
   div.innerHTML = `
-    <b>${g.home} vs ${g.away}</b>
+    <b>${g.home} vs ${g.away}</b> ${g.date ? ` – ${new Date(g.date).toLocaleString()}` : ""}
     <div class="market">
       🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
     </div>
     ${
       g.total
         ? `<div class="market">
-            🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})
-            📏 ${g.total.line} – ${g.total.probability}%
+            🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds || "-"})  
+            📏 Linija: ${g.total.line} – ${g.total.probability}%
           </div>`
         : `<div class="market">⚠️ Over/Under nėra</div>`
     }
