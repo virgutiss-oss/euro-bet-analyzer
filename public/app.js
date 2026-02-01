@@ -1,8 +1,6 @@
 const output = document.getElementById("output");
 const leaguesDiv = document.getElementById("leagues");
 
-let currentLeague = null;
-
 // 🏀 KREPŠINIS
 function showBasketball() {
   leaguesDiv.innerHTML = `
@@ -33,7 +31,15 @@ function showSoccer() {
   output.innerHTML = "Pasirink futbolo lygą";
 }
 
-// 🧠 SMART TOP 3 SKAIČIAVIMAS
+// 🏒 LEDO RITULYS (GRĄŽINTA)
+function showHockey() {
+  leaguesDiv.innerHTML = `
+    <button onclick="loadOdds('icehockey_nhl')">NHL</button>
+  `;
+  output.innerHTML = "Pasirink ledo ritulio lygą";
+}
+
+// 🧠 SMART TOP 3 (BE PAKEITIMŲ)
 function buildSmartTop3(games) {
   const picks = [];
   const usedMatches = new Set();
@@ -41,16 +47,13 @@ function buildSmartTop3(games) {
   games.forEach(g => {
     const matchId = `${g.home} vs ${g.away}`;
 
-    // WIN / LOSE kandidatas
     if (g.win) {
       const o = g.win.odds;
       const p = g.win.probability;
-
       if (o >= 1.4 && o <= 2.3 && p >= 55) {
         picks.push({
-          type: "Win/Lose",
           match: matchId,
-          pick: g.win.pick,
+          label: `Win/Lose: ${g.win.pick}`,
           odds: o,
           probability: p,
           score: p + (o >= 1.7 && o <= 2.1 ? 5 : 0)
@@ -58,7 +61,6 @@ function buildSmartTop3(games) {
       }
     }
 
-    // OVER / UNDER kandidatas
     if (g.total) {
       const o = g.total.odds;
       const p = g.total.probability;
@@ -67,17 +69,14 @@ function buildSmartTop3(games) {
 
       if (o >= 1.5 && p >= 56) {
         let bonus = 0;
-
         if (pick === "Over" && line <= 1.5) bonus = 8;
         else if (pick === "Under" && line >= 3.5) bonus = 7;
         else if (pick === "Over" && line <= 2.5) bonus = 4;
-        else if (pick === "Under" && line <= 2.5) bonus = 2;
         else if (pick === "Over" && line >= 3.5) bonus = -5;
 
         picks.push({
-          type: "Over/Under",
           match: matchId,
-          pick: `${pick} ${line}`,
+          label: `O/U: ${pick} ${line}`,
           odds: o,
           probability: p,
           score: p + bonus
@@ -86,14 +85,12 @@ function buildSmartTop3(games) {
     }
   });
 
-  // Rūšiuojam pagal SCORE
   picks.sort((a, b) => b.score - a.score);
 
   const top3 = [];
   for (const p of picks) {
     if (top3.length >= 3) break;
     if (usedMatches.has(p.match)) continue;
-
     usedMatches.add(p.match);
     top3.push(p);
   }
@@ -101,16 +98,14 @@ function buildSmartTop3(games) {
   return top3;
 }
 
-// 📡 API KVIETIMAS
+// 📡 API
 async function loadOdds(league) {
-  currentLeague = league;
   output.innerHTML = "⏳ Kraunama...";
   leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = true);
 
   try {
     const res = await fetch(`/api/odds?league=${league}`);
     const data = await res.json();
-
     leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = false);
 
     if (!Array.isArray(data) || data.length === 0) {
@@ -120,19 +115,22 @@ async function loadOdds(league) {
 
     output.innerHTML = "";
 
-    // 🏆 TOP 3 BLOKAS
+    // 🏆 TOP 3 – AIŠKIAI APIBRĖŽTAS BLOKAS
     const top3 = buildSmartTop3(data);
-    if (top3.length > 0) {
+    if (top3.length) {
       const topDiv = document.createElement("div");
       topDiv.className = "game";
-      topDiv.innerHTML = `<h2>🔥 TOP 3 ŠIANDIEN</h2>`;
+      topDiv.style.border = "2px solid #22c55e";
+      topDiv.style.background = "#020617";
+
+      topDiv.innerHTML = `<h2 style="color:#22c55e;">🔥 TOP 3 REKOMENDACIJOS</h2>`;
 
       top3.forEach(p => {
         const row = document.createElement("div");
         row.className = "market";
         row.innerHTML = `
           <b>${p.match}</b><br>
-          ${p.type}: <b>${p.pick}</b> (${p.odds}) – ${p.probability}%
+          👉 <b>${p.label}</b> (${p.odds}) – ${p.probability}%
         `;
         topDiv.appendChild(row);
       });
@@ -144,28 +142,15 @@ async function loadOdds(league) {
     data.forEach(g => {
       const div = document.createElement("div");
       div.className = "game";
-
       div.innerHTML = `
         <b>${g.home} vs ${g.away}</b>
-
-        <div class="market">
-          🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
-        </div>
-
-        ${
-          g.total
-            ? `<div class="market">
-                🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})  
-                📏 Linija: ${g.total.line} – ${g.total.probability}%
-              </div>`
-            : ""
-        }
+        <div class="market">🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%</div>
+        ${g.total ? `<div class="market">🏷 O/U: <b>${g.total.pick}</b> ${g.total.line} (${g.total.odds}) – ${g.total.probability}%</div>` : ""}
       `;
-
       output.appendChild(div);
     });
 
-  } catch (e) {
+  } catch {
     output.innerHTML = "❌ Klaida kraunant duomenis";
   }
 }
