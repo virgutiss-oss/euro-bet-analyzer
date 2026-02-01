@@ -16,6 +16,19 @@ function formatDate(dateStr) {
   });
 }
 
+function isToday(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
 /* =======================
    SPORTO MYGTUKAI
 ======================= */
@@ -64,7 +77,6 @@ function buildSmartTop3(games) {
   games.forEach(g => {
     const match = `${g.home} vs ${g.away}`;
 
-    // Win/Lose
     if (g.win) {
       const p = g.win.probability;
       const o = g.win.odds;
@@ -82,24 +94,18 @@ function buildSmartTop3(games) {
       }
     }
 
-    // Over / Under
     if (g.total) {
       const p = g.total.probability;
       const o = g.total.odds;
       if (p >= 56 && o >= 1.5) {
-        let bonus = 0;
-        if (g.total.pick === "Over" && g.total.line <= 2.5) bonus += 6;
-        if (g.total.pick === "Under" && g.total.line >= 3.5) bonus += 6;
-
         const value = ((p / 100) * o - 1) * 10;
-
         picks.push({
           match,
           type: "Over/Under",
           pick: `${g.total.pick} ${g.total.line}`,
           odds: o,
           probability: p,
-          score: p + bonus + value,
+          score: p + value,
           date: g.commence_time
         });
       }
@@ -138,19 +144,19 @@ async function loadOdds(league) {
 
     output.innerHTML = "";
 
-    /* ========= TOP 3 BLOKAS ========= */
-    const top3 = buildSmartTop3(data);
+    /* ========= TOP 3 – TIK ŠIANDIEN ========= */
+    const todayGames = data.filter(g => isToday(g.commence_time));
+    const top3 = buildSmartTop3(todayGames);
 
     if (top3.length) {
       const topDiv = document.createElement("div");
       topDiv.className = "game";
       topDiv.style.border = "3px solid #22c55e";
-      topDiv.style.background = "#020617";
       topDiv.style.marginBottom = "28px";
 
       topDiv.innerHTML = `
-        <h2 style="color:#22c55e;margin-bottom:12px;">
-          🔥 TOP 3 GERIAUSI PASIRINKIMAI
+        <h2 style="color:#22c55e;">
+          🔥 TOP 3 ŠIANDIENOS PASIRINKIMAI
         </h2>
       `;
 
