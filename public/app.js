@@ -68,7 +68,7 @@ function showHockey() {
 }
 
 /* =======================
-   SMART TOP 3 LOGIKA
+   SMART TOP 3
 ======================= */
 function buildSmartTop3(games) {
   const picks = [];
@@ -126,7 +126,7 @@ function buildSmartTop3(games) {
 }
 
 /* =======================
-   API KVIETIMAS
+   API
 ======================= */
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
@@ -137,16 +137,17 @@ async function loadOdds(league) {
     const data = await res.json();
     leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = false);
 
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!Array.isArray(data) || !data.length) {
       output.innerHTML = "❌ Nėra duomenų";
       return;
     }
 
     output.innerHTML = "";
 
-    /* ========= TOP 3 – TIK ŠIANDIEN ========= */
+    /* ===== TOP 3 LOGIKA (FIX) ===== */
     const todayGames = data.filter(g => isToday(g.commence_time));
-    const top3 = buildSmartTop3(todayGames);
+    const sourceGames = todayGames.length ? todayGames : data;
+    const top3 = buildSmartTop3(sourceGames);
 
     if (top3.length) {
       const topDiv = document.createElement("div");
@@ -156,7 +157,7 @@ async function loadOdds(league) {
 
       topDiv.innerHTML = `
         <h2 style="color:#22c55e;">
-          🔥 TOP 3 ŠIANDIENOS PASIRINKIMAI
+          🔥 TOP 3 SMART (${todayGames.length ? "šiandien" : "artimiausios"})
         </h2>
       `;
 
@@ -175,7 +176,7 @@ async function loadOdds(league) {
       output.appendChild(topDiv);
     }
 
-    /* ========= VISOS RUNGTYNĖS ========= */
+    /* ===== VISOS RUNGTYNĖS ===== */
     data.forEach(g => {
       const div = document.createElement("div");
       div.className = "game";
