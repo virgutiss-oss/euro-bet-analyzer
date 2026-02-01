@@ -44,6 +44,7 @@ export default async function handler(req, res) {
     if (!Array.isArray(data)) return res.json([]);
 
     const games = [];
+    const valueCandidates = [];
 
     data.forEach(game => {
       let bestWin = null;
@@ -52,14 +53,19 @@ export default async function handler(req, res) {
       game.bookmakers?.forEach(bm => {
         bm.markets?.forEach(m => {
 
-          // ✅ WIN / LOSE (VISIEMS)
+          // ✅ WIN / LOSE
           if (m.key === "h2h") {
             m.outcomes.forEach(o => {
+              const implied = 100 / o.price;
+              const prob = Math.round(implied);
+              const value = prob - implied;
+
               if (!bestWin || o.price < bestWin.odds) {
                 bestWin = {
                   pick: o.name,
                   odds: o.price,
-                  probability: Math.round(100 / o.price)
+                  probability: prob,
+                  value: Math.round(value)
                 };
               }
             });
@@ -70,23 +76,25 @@ export default async function handler(req, res) {
             m.outcomes.forEach(o => {
               if (o.price < 1.5) return;
 
-              let baseProb = 100 / o.price;
-              let weightedProb = baseProb;
+              const implied = 100 / o.price;
+              let modelProb = implied;
 
               if (isSoccer) {
                 const bias = leagueGoalBias[league] || 1;
                 const weight = lineWeight(o.name, o.point);
-                weightedProb = baseProb * bias * weight;
+                modelProb = implied * bias * weight;
               }
 
-              const finalProb = Math.round(weightedProb);
+              const finalProb = Math.round(modelProb);
+              const value = Math.round(finalProb - implied);
 
-              if (!bestTotal || finalProb > bestTotal.probability) {
+              if (!bestTotal || value > bestTotal.value) {
                 bestTotal = {
                   pick: o.name,
                   odds: o.price,
                   line: o.point,
-                  probability: finalProb
+                  probability: finalProb,
+                  value
                 };
               }
             });
@@ -95,25 +103,36 @@ export default async function handler(req, res) {
         });
       });
 
-      if (isTennis && bestWin) {
-        games.push({
-          home: game.home_team,
-          away: game.away_team,
-          win: bestWin
-        });
-      }
-
-      if (!isTennis && bestWin) {
-        games.push({
+      if (bestWin) {
+        const gameObj = {
           home: game.home_team,
           away: game.away_team,
           win: bestWin,
           total: bestTotal || null
-        });
+        };
+
+        games.push(gameObj);
+
+        // 📊 kandidatai TOP 3 (imam geriausią iš win / total)
+        const candidate = bestTotal && bestTotal.value > bestWin.value
+          ? { ...bestTotal, match: `${game.home_team} vs ${game.away_team}` }
+          : { ...bestWin, match: `${game.home_team} vs ${game.away_team}` };
+
+        valueCandidates.push(candidate);
       }
     });
 
-    res.status(200).json(games);
+    // 🏆 TOP 3 PAGAL VALUE
+    const top3 = valueCandidates
+      .filter(v => v.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 3);
+
+    res.status(200).json({
+      games,
+      top3
+    });
+
   } catch (e) {
     res.status(500).json([]);
   }
