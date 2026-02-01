@@ -1,208 +1,155 @@
 const output = document.getElementById("output");
 const leaguesDiv = document.getElementById("leagues");
 
-/* =======================
-   DATA FORMATAVIMAS
-======================= */
-function formatDate(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleString("lt-LT", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-}
+let accuracyMode = false;
+let allGames = [];
 
-function isToday(dateStr) {
-  if (!dateStr) return false;
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return false;
+// ====== UI ======
+const topBlock = document.createElement("div");
+topBlock.id = "top3";
+topBlock.style.border = "2px solid #22c55e";
+topBlock.style.padding = "16px";
+topBlock.style.marginBottom = "20px";
+topBlock.style.borderRadius = "12px";
+topBlock.style.display = "none";
 
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
-}
+const accuracyBtn = document.createElement("button");
+accuracyBtn.innerText = "🎯 Accuracy Mode: OFF";
+accuracyBtn.style.marginBottom = "16px";
+accuracyBtn.onclick = () => {
+  accuracyMode = !accuracyMode;
+  accuracyBtn.innerText = accuracyMode
+    ? "🎯 Accuracy Mode: ON"
+    : "🎯 Accuracy Mode: OFF";
+  renderGames();
+};
 
-/* =======================
-   SPORTO MYGTUKAI
-======================= */
+output.before(accuracyBtn);
+output.before(topBlock);
+
+// ====== SPORT BUTTONS ======
 function showBasketball() {
   leaguesDiv.innerHTML = `
     <button onclick="loadOdds('basketball_nba')">NBA</button>
     <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
     <button onclick="loadOdds('basketball_eurocup')">EuroCup</button>
-    <button onclick="loadOdds('basketball_lithuania_lkl')">LKL</button>
-    <button onclick="loadOdds('basketball_spain_acb')">ACB</button>
-    <button onclick="loadOdds('basketball_germany_bbl')">BBL</button>
-    <button onclick="loadOdds('basketball_france_proa')">Pro A</button>
-    <button onclick="loadOdds('basketball_italy_lega_a')">Lega A</button>
   `;
   output.innerHTML = "Pasirink krepšinio lygą";
 }
 
 function showSoccer() {
   leaguesDiv.innerHTML = `
-    <button onclick="loadOdds('soccer_epl')">EPL</button>
+    <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
+    <button onclick="loadOdds('soccer_uefa_europa_league')">Europa League</button>
+    <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
+    <button onclick="loadOdds('soccer_germany_bundesliga2')">Bundesliga 2</button>
     <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
     <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
-    <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
-    <button onclick="loadOdds('soccer_germany_bundesliga_2')">2 Bundesliga</button>
-    <button onclick="loadOdds('soccer_france_ligue_one')">Ligue 1</button>
-    <button onclick="loadOdds('soccer_uefa_champs_league')">UCL</button>
-    <button onclick="loadOdds('soccer_uefa_europa_league')">UEL</button>
   `;
   output.innerHTML = "Pasirink futbolo lygą";
 }
 
-function showHockey() {
-  leaguesDiv.innerHTML = `
-    <button onclick="loadOdds('icehockey_nhl')">NHL</button>
-  `;
-  output.innerHTML = "Pasirink ledo ritulį";
-}
-
-/* =======================
-   SMART TOP 3
-======================= */
-function buildSmartTop3(games) {
-  const picks = [];
-  const usedMatches = new Set();
-
-  games.forEach(g => {
-    const match = `${g.home} vs ${g.away}`;
-
-    if (g.win) {
-      const p = g.win.probability;
-      const o = g.win.odds;
-      if (p >= 55 && o >= 1.4 && o <= 2.3) {
-        const value = ((p / 100) * o - 1) * 10;
-        picks.push({
-          match,
-          type: "Win/Lose",
-          pick: g.win.pick,
-          odds: o,
-          probability: p,
-          score: p + value,
-          date: g.commence_time
-        });
-      }
-    }
-
-    if (g.total) {
-      const p = g.total.probability;
-      const o = g.total.odds;
-      if (p >= 56 && o >= 1.5) {
-        const value = ((p / 100) * o - 1) * 10;
-        picks.push({
-          match,
-          type: "Over/Under",
-          pick: `${g.total.pick} ${g.total.line}`,
-          odds: o,
-          probability: p,
-          score: p + value,
-          date: g.commence_time
-        });
-      }
-    }
-  });
-
-  picks.sort((a, b) => b.score - a.score);
-
-  const top3 = [];
-  for (const p of picks) {
-    if (top3.length === 3) break;
-    if (usedMatches.has(p.match)) continue;
-    usedMatches.add(p.match);
-    top3.push(p);
-  }
-
-  return top3;
-}
-
-/* =======================
-   API
-======================= */
+// ====== API ======
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
-  leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = true);
+  topBlock.style.display = "none";
 
   try {
     const res = await fetch(`/api/odds?league=${league}`);
     const data = await res.json();
-    leaguesDiv.querySelectorAll("button").forEach(b => b.disabled = false);
 
-    if (!Array.isArray(data) || !data.length) {
+    if (!Array.isArray(data) || data.length === 0) {
       output.innerHTML = "❌ Nėra duomenų";
       return;
     }
 
-    output.innerHTML = "";
+    allGames = data.map(g => {
+      const ev =
+        (g.win.probability / 100) * g.win.odds - 1;
 
-    /* ===== TOP 3 LOGIKA (FIX) ===== */
-    const todayGames = data.filter(g => isToday(g.commence_time));
-    const sourceGames = todayGames.length ? todayGames : data;
-    const top3 = buildSmartTop3(sourceGames);
-
-    if (top3.length) {
-      const topDiv = document.createElement("div");
-      topDiv.className = "game";
-      topDiv.style.border = "3px solid #22c55e";
-      topDiv.style.marginBottom = "28px";
-
-      topDiv.innerHTML = `
-        <h2 style="color:#22c55e;">
-          🔥 TOP 3 SMART (${todayGames.length ? "šiandien" : "artimiausios"})
-        </h2>
-      `;
-
-      top3.forEach((p, i) => {
-        const row = document.createElement("div");
-        row.className = "market";
-        row.innerHTML = `
-          <b>#${i + 1} ${p.match}</b>
-          ${p.date ? `<div style="opacity:.7">📅 ${formatDate(p.date)}</div>` : ""}
-          👉 <b>${p.type}: ${p.pick}</b>
-          (${p.odds}) – <b>${p.probability}%</b>
-        `;
-        topDiv.appendChild(row);
-      });
-
-      output.appendChild(topDiv);
-    }
-
-    /* ===== VISOS RUNGTYNĖS ===== */
-    data.forEach(g => {
-      const div = document.createElement("div");
-      div.className = "game";
-      div.innerHTML = `
-        <b>${g.home} vs ${g.away}</b>
-        ${g.commence_time ? `<div style="opacity:.6">📅 ${formatDate(g.commence_time)}</div>` : ""}
-
-        <div class="market">
-          🏷 Win/Lose:
-          <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
-        </div>
-
-        ${
-          g.total
-            ? `<div class="market">
-                🏷 Over/Under:
-                <b>${g.total.pick}</b> ${g.total.line}
-                (${g.total.odds}) – ${g.total.probability}%
-              </div>`
-            : ""
-        }
-      `;
-      output.appendChild(div);
+      return {
+        ...g,
+        ev
+      };
     });
 
+    renderGames();
   } catch {
     output.innerHTML = "❌ Klaida kraunant duomenis";
   }
+}
+
+// ====== RENDER ======
+function renderGames() {
+  output.innerHTML = "";
+
+  let games = [...allGames];
+
+  // ===== Accuracy Mode FILTER =====
+  if (accuracyMode) {
+    games = games.filter(g =>
+      g.win.probability >= 58 &&
+      g.win.probability <= 70 &&
+      g.win.odds >= 1.6 &&
+      g.win.odds <= 2.2 &&
+      g.ev > 0.05
+    );
+  }
+
+  // ===== TOP 3 by VALUE =====
+  const today = new Date().toDateString();
+
+  const top3 = games
+    .filter(g => {
+      if (!g.commence_time) return false;
+      return new Date(g.commence_time).toDateString() === today;
+    })
+    .sort((a, b) => b.ev - a.ev)
+    .slice(0, 3);
+
+  if (top3.length > 0) {
+    topBlock.style.display = "block";
+    topBlock.innerHTML = `<h2>🔥 TOP 3 ŠIANDIEN (VALUE)</h2>`;
+    top3.forEach(g => {
+      topBlock.innerHTML += `
+        <div>
+          <b>${g.home} vs ${g.away}</b><br>
+          Win: ${g.win.pick} @ ${g.win.odds}
+          (${g.win.probability}%)<br>
+          EV: ${(g.ev * 100).toFixed(1)}%
+          <hr>
+        </div>
+      `;
+    });
+  } else {
+    topBlock.style.display = "none";
+  }
+
+  // ===== ALL GAMES =====
+  games.forEach(g => {
+    const div = document.createElement("div");
+    div.className = "game";
+
+    const dateStr = g.commence_time
+      ? new Date(g.commence_time).toLocaleString("lt-LT")
+      : "–";
+
+    div.innerHTML = `
+      <b>${g.home} vs ${g.away}</b><br>
+      🕒 ${dateStr}
+      <div class="market">
+        🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%
+      </div>
+      ${
+        g.total
+          ? `<div class="market">
+              🏷 Over/Under: <b>${g.total.pick}</b> (${g.total.odds})
+              📏 ${g.total.line} – ${g.total.probability}%
+            </div>`
+          : ""
+      }
+    `;
+
+    output.appendChild(div);
+  });
 }
