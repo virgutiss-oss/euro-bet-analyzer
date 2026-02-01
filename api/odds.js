@@ -4,15 +4,20 @@ export default async function handler(req, res) {
 
   const isTennis = league.startsWith("tennis");
 
+  // 🎾 tenisas – tik h2h, US region
+  // visi kiti – h2h + totals, EU region
   const markets = isTennis ? "h2h" : "h2h,totals";
+  const region = isTennis ? "us" : "eu";
 
-  const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=${markets}&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
+  const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=${region}&markets=${markets}&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
 
   try {
     const r = await fetch(url);
     const data = await r.json();
 
-    if (!Array.isArray(data)) return res.json([]);
+    if (!Array.isArray(data)) {
+      return res.status(200).json([]);
+    }
 
     const games = [];
 
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
         });
       });
 
-      // 🎾 TENISAS – pakanka WIN
+      // 🎾 TENISAS – užtenka WIN
       if (isTennis && bestWin) {
         games.push({
           home: game.home_team,
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // 🏀⚽🏒 – WIN + TOTAL
+      // 🏀⚽🏒 – WIN visada, TOTAL jei yra
       if (!isTennis && bestWin) {
         games.push({
           home: game.home_team,
