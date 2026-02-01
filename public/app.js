@@ -27,6 +27,7 @@ function showSoccer() {
     <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
     <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
     <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
+    <button onclick="loadOdds('soccer_germany_bundesliga_2')">2. Bundesliga</button>
     <button onclick="loadOdds('soccer_france_ligue_one')">Ligue 1</button>
     <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
     <button onclick="loadOdds('soccer_uefa_europa_league')">Europa League</button>
@@ -51,7 +52,7 @@ function buildSmartTop3(games) {
     // istorijos simuliacija: jei nėra, imituojam paskutinių 10 rungtynių
     if (!lastGamesHistory[matchId]) {
       lastGamesHistory[matchId] = Array.from({length:10}, () => ({
-        homeScore: Math.floor(Math.random() * 100 + 70), // 70-170 pts
+        homeScore: Math.floor(Math.random() * 100 + 70),
         awayScore: Math.floor(Math.random() * 100 + 70)
       }));
     }
@@ -68,7 +69,8 @@ function buildSmartTop3(games) {
           pick: g.win.pick,
           odds: o,
           probability: p,
-          score: p + value
+          score: p + value,
+          date: g.commence_time || "TBD"
         });
       }
     }
@@ -80,11 +82,10 @@ function buildSmartTop3(games) {
       const line = g.total.line;
       const pick = g.total.pick;
 
-      // modeliuojam pagal paskutinių 10 rungtynių vidurkį
       const hist = lastGamesHistory[matchId];
       const avgPoints = hist.reduce((a,b) => a+b.homeScore+b.awayScore,0)/hist.length;
 
-      let modelLine = Math.round(avgPoints*10)/10; // suapvalinta
+      let modelLine = Math.round(avgPoints*10)/10;
       let bonus = 0;
 
       if (pick === "Over" && line <= modelLine) bonus = 8;
@@ -101,7 +102,8 @@ function buildSmartTop3(games) {
           pick: `${pick} ${line}`,
           odds: o,
           probability: p,
-          score: p + bonus + value
+          score: p + bonus + value,
+          date: g.commence_time || "TBD"
         });
       }
     }
@@ -150,7 +152,7 @@ async function loadOdds(league) {
         const row = document.createElement("div");
         row.className = "market";
         row.innerHTML = `
-          <b>${p.match}</b><br>
+          <b>${p.match}</b> <i>(${new Date(p.date).toLocaleString()})</i><br>
           👉 <b>${p.type}: ${p.pick}</b> (${p.odds}) – ${p.probability}%
         `;
         topDiv.appendChild(row);
@@ -164,12 +166,10 @@ async function loadOdds(league) {
       const div = document.createElement("div");
       div.className = "game";
       div.innerHTML = `
-        <b>${g.home} vs ${g.away}</b>
+        <b>${g.home} vs ${g.away}</b> <i>(${new Date(g.commence_time).toLocaleString()})</i>
         <div class="market">🏷 Win/Lose: <b>${g.win.pick}</b> (${g.win.odds}) – ${g.win.probability}%</div>
         ${
-          g.total
-            ? `<div class="market">🏷 O/U: <b>${g.total.pick}</b> ${g.total.line} (${g.total.odds}) – ${g.total.probability}%</div>`
-            : ""
+          g.total ? `<div class="market">🏷 O/U: <b>${g.total.pick}</b> ${g.total.line} (${g.total.odds}) – ${g.total.probability}%</div>` : ""
         }
       `;
       output.appendChild(div);
