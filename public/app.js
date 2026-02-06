@@ -28,7 +28,7 @@ accuracyBtn.onclick = () => {
 output.before(accuracyBtn);
 output.before(topBlock);
 
-// ===== LEAGUES =====
+// ===== SPORT MENIU =====
 function showBasketball() {
   leaguesDiv.innerHTML = `
     <button onclick="loadOdds('basketball_nba')">NBA</button>
@@ -48,6 +48,13 @@ function showSoccer() {
     <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
   `;
   output.innerHTML = "Pasirink futbolo lygą";
+}
+
+function showHockey() {
+  leaguesDiv.innerHTML = `
+    <button onclick="loadOdds('icehockey_nhl')">NHL</button>
+  `;
+  output.innerHTML = "Pasirink ledo ritulio lygą";
 }
 
 // ===== API =====
@@ -75,11 +82,9 @@ async function loadOdds(league) {
   }
 }
 
-// ===== TOP 3 LOGIC =====
+// ===== TOP 3 =====
 function getTop3(games) {
-  return [...games]
-    .sort((a, b) => b.ev - a.ev)
-    .slice(0, 3);
+  return [...games].sort((a, b) => b.ev - a.ev).slice(0, 3);
 }
 
 // ===== RENDER =====
@@ -94,16 +99,11 @@ function renderGames() {
       g.win.odds >= 1.5 &&
       g.ev > -0.05
     );
-
-    // 🔐 APSAUGA – jei per griežta
-    if (filtered.length > 0) {
-      games = filtered;
-    }
+    if (filtered.length > 0) games = filtered;
   }
 
   // ===== TOP 3 =====
   const top3 = getTop3(games);
-
   if (top3.length > 0) {
     topBlock.style.display = "block";
     topBlock.innerHTML = `<h2>🔥 TOP 3 (VALUE)</h2>`;
@@ -122,14 +122,18 @@ function renderGames() {
     topBlock.style.display = "none";
   }
 
-  // ===== ALL GAMES =====
+  // ===== VISOS RUNGTYNĖS =====
   games.forEach(g => {
     const div = document.createElement("div");
     div.className = "game";
 
-    const dateStr = g.commence_time
-      ? new Date(g.commence_time).toLocaleString("lt-LT")
-      : "–";
+    let dateStr = "Laikas nepatikslintas";
+    if (g.commence_time) {
+      const d = new Date(g.commence_time);
+      if (!isNaN(d)) {
+        dateStr = d.toLocaleString("lt-LT");
+      }
+    }
 
     div.innerHTML = `
       <b>${g.home} vs ${g.away}</b><br>
@@ -146,7 +150,6 @@ function renderGames() {
           : ""
       }
     `;
-
     output.appendChild(div);
   });
 }
