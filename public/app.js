@@ -2,7 +2,6 @@ const output = document.getElementById("output");
 const leaguesDiv = document.getElementById("leagues");
 
 let allGames = [];
-let accuracyMode = false;
 
 // ===== TOP 3 BLOKAS =====
 const topBlock = document.createElement("div");
@@ -64,7 +63,7 @@ async function loadOdds(league) {
     allGames = data;
     renderGames();
 
-  } catch (err) {
+  } catch {
     output.innerHTML = "❌ Klaida kraunant";
   }
 }
@@ -74,23 +73,55 @@ function impliedProbability(odds) {
   return odds ? (1 / odds) * 100 : 0;
 }
 
+// ===== GERIAUSIAS PASIRINKIMAS =====
+function getBestPick(game) {
+  let best = null;
+
+  // WIN rinka
+  game.win.forEach(w => {
+    const prob = impliedProbability(w.price);
+    if (!best || prob > best.prob) {
+      best = {
+        type: "WIN",
+        name: w.name,
+        odds: w.price,
+        prob: prob
+      };
+    }
+  });
+
+  // TOTAL rinka
+  game.total.forEach(t => {
+    const prob = impliedProbability(t.price);
+    if (!best || prob > best.prob) {
+      best = {
+        type: "TOTAL",
+        name: `${t.name} ${t.point || ""}`,
+        odds: t.price,
+        prob: prob
+      };
+    }
+  });
+
+  return best;
+}
+
 // ===== TOP 3 =====
 function getTop3(games) {
   const picks = [];
 
   games.forEach(g => {
-    g.win.forEach(w => {
+    const best = getBestPick(g);
+    if (best) {
       picks.push({
         match: `${g.home_team} vs ${g.away_team}`,
-        bet: w.name,
-        odds: w.price,
-        value: impliedProbability(w.price)
+        ...best
       });
-    });
+    }
   });
 
   return picks
-    .sort((a, b) => b.value - a.value)
+    .sort((a, b) => b.prob - a.prob)
     .slice(0, 3);
 }
 
@@ -98,45 +129,35 @@ function getTop3(games) {
 function renderGames() {
   output.innerHTML = "";
 
-  // TOP 3
   const top3 = getTop3(allGames);
 
   if (top3.length > 0) {
     topBlock.style.display = "block";
-    topBlock.innerHTML = "<h2>🔥 TOP 3</h2>";
+    topBlock.innerHTML = "<h2>🔥 TOP 3 SMART</h2>";
 
     top3.forEach(t => {
       topBlock.innerHTML += `
         <div style="margin-bottom:15px;">
           <b>${t.match}</b><br>
-          🎯 ${t.bet} @ ${t.odds}
+          🎯 ${t.name} @ ${t.odds}
           <hr>
         </div>
       `;
     });
   }
 
-  // VISOS RUNGTYNĖS
   allGames.forEach(g => {
+    const best = getBestPick(g);
+    if (!best) return;
+
     const div = document.createElement("div");
     div.style.marginBottom = "25px";
-
-    let winHtml = "";
-    g.win.forEach(w => {
-      winHtml += `<div>🏆 ${w.name} @ ${w.price}</div>`;
-    });
-
-    let totalHtml = "";
-    g.total.forEach(t => {
-      totalHtml += `<div>📊 ${t.name} ${t.point || ""} @ ${t.price}</div>`;
-    });
 
     div.innerHTML = `
       <h3>${g.home_team} vs ${g.away_team}</h3>
       🕒 ${formatDate(g.commence_time)}
       <div style="margin-top:10px;">
-        ${winHtml}
-        ${totalHtml}
+        🎯 <b>${best.name}</b> @ ${best.odds}
       </div>
       <hr>
     `;
