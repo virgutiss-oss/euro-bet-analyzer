@@ -73,32 +73,39 @@ function impliedProbability(odds) {
   return odds ? (1 / odds) * 100 : 0;
 }
 
-// ===== GERIAUSIAS PASIRINKIMAS =====
-function getBestPick(game) {
+// ===== GERIAUSIAS WIN =====
+function getBestWin(game) {
   let best = null;
 
-  // WIN rinka
   game.win.forEach(w => {
     const prob = impliedProbability(w.price);
+
     if (!best || prob > best.prob) {
       best = {
         type: "WIN",
         name: w.name,
         odds: w.price,
-        prob: prob
+        prob
       };
     }
   });
 
-  // TOTAL rinka
+  return best;
+}
+
+// ===== GERIAUSIAS TOTAL =====
+function getBestTotal(game) {
+  let best = null;
+
   game.total.forEach(t => {
     const prob = impliedProbability(t.price);
+
     if (!best || prob > best.prob) {
       best = {
         type: "TOTAL",
         name: `${t.name} ${t.point || ""}`,
         odds: t.price,
-        prob: prob
+        prob
       };
     }
   });
@@ -111,11 +118,20 @@ function getTop3(games) {
   const picks = [];
 
   games.forEach(g => {
-    const best = getBestPick(g);
-    if (best) {
+    const bestWin = getBestWin(g);
+    const bestTotal = getBestTotal(g);
+
+    if (bestWin) {
       picks.push({
         match: `${g.home_team} vs ${g.away_team}`,
-        ...best
+        ...bestWin
+      });
+    }
+
+    if (bestTotal) {
+      picks.push({
+        match: `${g.home_team} vs ${g.away_team}`,
+        ...bestTotal
       });
     }
   });
@@ -147,8 +163,8 @@ function renderGames() {
   }
 
   allGames.forEach(g => {
-    const best = getBestPick(g);
-    if (!best) return;
+    const bestWin = getBestWin(g);
+    const bestTotal = getBestTotal(g);
 
     const div = document.createElement("div");
     div.style.marginBottom = "25px";
@@ -157,7 +173,8 @@ function renderGames() {
       <h3>${g.home_team} vs ${g.away_team}</h3>
       🕒 ${formatDate(g.commence_time)}
       <div style="margin-top:10px;">
-        🎯 <b>${best.name}</b> @ ${best.odds}
+        ${bestWin ? `🏆 <b>${bestWin.name}</b> @ ${bestWin.odds}<br>` : ""}
+        ${bestTotal ? `📊 <b>${bestTotal.name}</b> @ ${bestTotal.odds}` : ""}
       </div>
       <hr>
     `;
