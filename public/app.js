@@ -4,6 +4,31 @@ const leaguesDiv = document.getElementById("leagues");
 let allGames = [];
 let accuracyMode = false;
 
+// ===== SPORT MENU =====
+function showBasketball() {
+  leaguesDiv.innerHTML = `
+    <button onclick="loadOdds('basketball_nba')">NBA</button>
+    <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
+    <button onclick="loadOdds('basketball_eurocup')">EuroCup</button>
+  `;
+}
+
+function showSoccer() {
+  leaguesDiv.innerHTML = `
+    <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
+    <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
+    <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
+    <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
+    <button onclick="loadOdds('soccer_france_ligue_1')">Ligue 1</button>
+  `;
+}
+
+function showHockey() {
+  leaguesDiv.innerHTML = `
+    <button onclick="loadOdds('icehockey_nhl')">NHL</button>
+  `;
+}
+
 // ===== ACCURACY MODE =====
 const accuracyBtn = document.createElement("button");
 accuracyBtn.innerText = "🎯 Accuracy Mode: OFF";
@@ -52,8 +77,8 @@ async function loadOdds(league) {
     allGames = data;
     renderGames();
 
-  } catch {
-    output.innerHTML = "❌ Klaida kraunant";
+  } catch (err) {
+    output.innerHTML = "❌ Klaida kraunant duomenis";
   }
 }
 
@@ -62,28 +87,19 @@ function impliedProb(odds) {
   return odds ? 1 / odds : 0;
 }
 
-// ===== RISK FILTER =====
 function riskAllowed(odds) {
   if (!accuracyMode) return true;
   return odds >= 1.4 && odds <= 3.2;
 }
 
-// ===== FORM SIMULATION (kol neturim real API) =====
-function simulatedFormBoost(odds) {
-  // Simuliuojam formos faktorių (vėliau galėsim prijungti realų API)
-  const boost = 1 + (Math.random() * 0.08);
-  return odds * boost;
-}
-
-// ===== GERIAUSIAS WIN =====
+// ===== BEST WIN =====
 function getBestWin(game) {
   let best = null;
 
   game.win.forEach(w => {
     if (!riskAllowed(w.price)) return;
 
-    const adjustedOdds = simulatedFormBoost(w.price);
-    const prob = impliedProb(adjustedOdds);
+    const prob = impliedProb(w.price);
 
     if (!best || prob > best.prob) {
       best = {
@@ -98,15 +114,14 @@ function getBestWin(game) {
   return best;
 }
 
-// ===== GERIAUSIAS TOTAL =====
+// ===== BEST TOTAL =====
 function getBestTotal(game) {
   let best = null;
 
   game.total.forEach(t => {
     if (!riskAllowed(t.price)) return;
 
-    const adjustedOdds = simulatedFormBoost(t.price);
-    const prob = impliedProb(adjustedOdds);
+    const prob = impliedProb(t.price);
 
     if (!best || prob > best.prob) {
       best = {
