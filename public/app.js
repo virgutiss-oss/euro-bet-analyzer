@@ -4,7 +4,7 @@ const leaguesDiv = document.getElementById("leagues");
 let allGames = [];
 let accuracyMode = false;
 
-// ===== ACCURACY MODE BUTTON =====
+// ===== ACCURACY MODE =====
 const accuracyBtn = document.createElement("button");
 accuracyBtn.innerText = "🎯 Accuracy Mode: OFF";
 accuracyBtn.style.marginBottom = "20px";
@@ -19,7 +19,7 @@ accuracyBtn.onclick = () => {
 
 output.before(accuracyBtn);
 
-// ===== TOP 3 BLOKAS =====
+// ===== TOP BLOCK =====
 const topBlock = document.createElement("div");
 topBlock.style.border = "3px solid #22c55e";
 topBlock.style.padding = "20px";
@@ -29,31 +29,6 @@ topBlock.style.background = "#111";
 topBlock.style.display = "none";
 
 accuracyBtn.before(topBlock);
-
-// ===== SPORT MENU =====
-function showBasketball() {
-  leaguesDiv.innerHTML = `
-    <button onclick="loadOdds('basketball_nba')">NBA</button>
-    <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
-    <button onclick="loadOdds('basketball_eurocup')">EuroCup</button>
-  `;
-}
-
-function showSoccer() {
-  leaguesDiv.innerHTML = `
-    <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
-    <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
-    <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
-    <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
-    <button onclick="loadOdds('soccer_france_ligue_1')">Ligue 1</button>
-  `;
-}
-
-function showHockey() {
-  leaguesDiv.innerHTML = `
-    <button onclick="loadOdds('icehockey_nhl')">NHL</button>
-  `;
-}
 
 // ===== LOAD =====
 async function loadOdds(league) {
@@ -76,87 +51,93 @@ async function loadOdds(league) {
 
     allGames = data;
     renderGames();
+
   } catch {
     output.innerHTML = "❌ Klaida kraunant";
   }
 }
 
-// ===== PAGALBINĖS FUNKCIJOS =====
+// ===== PROBABILITY =====
 function impliedProb(odds) {
   return odds ? 1 / odds : 0;
 }
 
-function todayLT() {
-  const now = new Date();
-  return now.toLocaleDateString("lt-LT");
+// ===== RISK FILTER =====
+function riskAllowed(odds) {
+  if (!accuracyMode) return true;
+  return odds >= 1.4 && odds <= 3.2;
 }
 
-function isToday(dateString) {
-  const d = new Date(dateString);
-  return d.toLocaleDateString("lt-LT") === todayLT();
+// ===== FORM SIMULATION (kol neturim real API) =====
+function simulatedFormBoost(odds) {
+  // Simuliuojam formos faktorių (vėliau galėsim prijungti realų API)
+  const boost = 1 + (Math.random() * 0.08);
+  return odds * boost;
 }
 
-// ===== VALUE SKAIČIAVIMAS =====
-function calculateValue(odds) {
-  const implied = impliedProb(odds);
-
-  // Model probability – stabilumo korekcija
-  let model = implied * 1.05;
-
-  // Rizikos filtravimas Accuracy mode
-  if (accuracyMode) {
-    if (odds < 1.4 || odds > 3.5) return null;
-  }
-
-  return model - implied;
-}
-
-// ===== GERIAUSI PICKAI =====
-function getBestPicks(game) {
-  const picks = [];
+// ===== GERIAUSIAS WIN =====
+function getBestWin(game) {
+  let best = null;
 
   game.win.forEach(w => {
-    const value = calculateValue(w.price);
-    if (value !== null) {
-      picks.push({
-        match: `${game.home_team} vs ${game.away_team}`,
+    if (!riskAllowed(w.price)) return;
+
+    const adjustedOdds = simulatedFormBoost(w.price);
+    const prob = impliedProb(adjustedOdds);
+
+    if (!best || prob > best.prob) {
+      best = {
         type: "WIN",
         name: w.name,
         odds: w.price,
-        value
-      });
+        prob
+      };
     }
   });
 
+  return best;
+}
+
+// ===== GERIAUSIAS TOTAL =====
+function getBestTotal(game) {
+  let best = null;
+
   game.total.forEach(t => {
-    const value = calculateValue(t.price);
-    if (value !== null) {
-      picks.push({
-        match: `${game.home_team} vs ${game.away_team}`,
+    if (!riskAllowed(t.price)) return;
+
+    const adjustedOdds = simulatedFormBoost(t.price);
+    const prob = impliedProb(adjustedOdds);
+
+    if (!best || prob > best.prob) {
+      best = {
         type: "TOTAL",
         name: `${t.name} ${t.point || ""}`,
         odds: t.price,
-        value
-      });
+        prob
+      };
     }
   });
 
-  return picks.sort((a, b) => b.value - a.value).slice(0, 2);
+  return best;
 }
 
-// ===== TOP 3 TIK ŠIANDIEN =====
+// ===== TOP 3 TODAY =====
 function getTop3Today(games) {
-  let allPicks = [];
+  const today = new Date().toLocaleDateString("lt-LT");
+  let picks = [];
 
   games.forEach(g => {
-    if (isToday(g.commence_time)) {
-      allPicks = allPicks.concat(getBestPicks(g));
-    }
+    const gameDate = new Date(g.commence_time).toLocaleDateString("lt-LT");
+    if (gameDate !== today) return;
+
+    const win = getBestWin(g);
+    const total = getBestTotal(g);
+
+    if (win) picks.push({ match: `${g.home_team} vs ${g.away_team}`, ...win });
+    if (total) picks.push({ match: `${g.home_team} vs ${g.away_team}`, ...total });
   });
 
-  return allPicks
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 3);
+  return picks.sort((a,b)=> b.prob - a.prob).slice(0,3);
 }
 
 // ===== RENDER =====
@@ -181,26 +162,22 @@ function renderGames() {
   }
 
   allGames.forEach(g => {
-    const best = getBestPicks(g);
+    const win = getBestWin(g);
+    const total = getBestTotal(g);
 
     const div = document.createElement("div");
     div.style.marginBottom = "25px";
 
-    let html = `
+    div.innerHTML = `
       <h3>${g.home_team} vs ${g.away_team}</h3>
       🕒 ${new Date(g.commence_time).toLocaleString("lt-LT")}
       <div style="margin-top:10px;">
+        ${win ? `🏆 <b>${win.name}</b> @ ${win.odds}<br>` : ""}
+        ${total ? `📊 <b>${total.name}</b> @ ${total.odds}` : ""}
+      </div>
+      <hr>
     `;
 
-    best.forEach(p => {
-      html += `
-        ${p.type === "WIN" ? "🏆" : "📊"} 
-        <b>${p.name}</b> @ ${p.odds}<br>
-      `;
-    });
-
-    html += "</div><hr>";
-    div.innerHTML = html;
     output.appendChild(div);
   });
 }
