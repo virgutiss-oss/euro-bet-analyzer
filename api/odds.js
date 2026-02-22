@@ -1,73 +1,72 @@
 export default async function handler(req, res) {
-  const { sport } = req.query;
+  const { league } = req.query;
+  if (!league) return res.status(400).json([]);
 
-  if (!sport) {
-    return res.status(400).json({ error: "Sport parameter required" });
-  }
+  const isTennis = league.startsWith("tennis");
 
-  const API_KEY = process.env.API_KEY;
+  const markets = isTennis ? "h2h" : "h2h,totals";
+  const region = isTennis ? "us" : "eu";
 
-  if (!API_KEY) {
-    return res.status(500).json({
-      error: "API key is missing. Please set your API_KEY in environment variables."
-    });
-  }
+  const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=${region}&markets=${markets}&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
 
   try {
-    const response = await fetch(
-      `https://api.the-odds-api.com/v4/sports/${sport}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`
-    );
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!Array.isArray(data)) return res.json([]);
 
-    const data = await response.json();
+    const games = [];
 
-    // Tikriname, ar key galioja
-    if (data.error_code === "INVALID_KEY") {
-      return res.status(401).json({
-        error: "Your API key is invalid or has expired. Get a new key at https://the-odds-api.com"
+    data.forEach(game => {
+      let bestWin = null;
+      let bestTotal = null;
+
+      game.bookmakers?.forEach(bm => {
+        bm.markets?.forEach(m => {
+
+          // WIN / LOSE
+          if (m.key === "h2h") {
+            m.outcomes.forEach(o => {
+              if (!bestWin || o.price < bestWin.odds) {
+                bestWin = {
+                  pick: o.name,
+                  odds: o.price,
+                  probability: Math.round(100 / o.price)
+                };
+              }
+            });
+          }
+
+          // OVER / UNDER (ne tenisui)
+          if (!isTennis && m.key === "totals") {
+            m.outcomes.forEach(o => {
+              if (o.price < 1.5) return;
+
+              if (!bestTotal || o.price < bestTotal.odds) {
+                bestTotal = {
+                  pick: o.name,
+                  odds: o.price,
+                  line: o.point,
+                  probability: Math.round(100 / o.price)
+                };
+              }
+            });
+          }
+
+        });
       });
-    }
 
-    // Tikriname, ar limitas pasibaigęs
-    if (data.error_code === "OUT_OF_USAGE_CREDITS") {
-      return res.status(429).json({
-        error: "API usage quota reached. Upgrade plan at https://the-odds-api.com"
-      });
-    }
+      if (bestWin) {
+        games.push({
+          home: game.home_team,
+          away: game.away_team,
+          win: bestWin,
+          total: bestTotal || null
+        });
+      }
+    });
 
-    // Patikriname, ar gavome masyvą
-    if (!Array.isArray(data)) {
-      return res.status(200).json([]);
-    }
-
-    // Formatuojame duomenis
-    const formatted = data.map((game) => {
-      const bookmaker = game.bookmakers?.[0];
-      const h2hMarket = bookmaker?.markets?.find((m) => m.key === "h2h");
-      const totalsMarket = bookmaker?.markets?.find((m) => m.key === "totals");
-
-      const winData = h2hMarket
-        ? h2hMarket.outcomes.map((o) => ({ name: o.name, price: o.price }))
-        : [];
-
-      const totalData = totalsMarket
-        ? totalsMarket.outcomes.map((o) => ({ name: o.name, price: o.price, point: o.point }))
-        : [];
-
-      return {
-        id: game.id,
-        home_team: game.home_team,
-        away_team: game.away_team,
-        league: sport,
-        commence_time: game.commence_time || null,
-        win: winData,
-        total: totalData
-      };
-    }).filter(Boolean);
-
-    res.status(200).json(formatted);
-
-  } catch (error) {
-    console.error("API ERROR:", error);
-    res.status(500).json({ error: "Failed to fetch odds. Check API or network." });
+    res.status(200).json(games);
+  } catch (e) {
+    res.status(500).json([]);
   }
 }
