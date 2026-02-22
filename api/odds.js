@@ -1,72 +1,65 @@
 export default async function handler(req, res) {
-  const { league } = req.query;
-  if (!league) return res.status(400).json([]);
+  const { sport } = req.query;
 
-  const isTennis = league.startsWith("tennis");
+  if (!sport) {
+    return res.status(400).json({ error: "Sport parameter required" });
+  }
 
-  const markets = isTennis ? "h2h" : "h2h,totals";
-  const region = isTennis ? "us" : "eu";
+  const API_KEY = process.env.API_KEY;
 
-  const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=${region}&markets=${markets}&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`;
+  if (!API_KEY) {
+    return res.status(500).json({
+      error: "API key is missing in Vercel Environment Variables"
+    });
+  }
 
   try {
-    const r = await fetch(url);
-    const data = await r.json();
-    if (!Array.isArray(data)) return res.json([]);
+    const response = await fetch(
+      `https://api.the-odds-api.com/v4/sports/${sport}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`
+    );
 
-    const games = [];
+    const data = await response.json();
 
-    data.forEach(game => {
-      let bestWin = null;
-      let bestTotal = null;
-
-      game.bookmakers?.forEach(bm => {
-        bm.markets?.forEach(m => {
-
-          // WIN / LOSE
-          if (m.key === "h2h") {
-            m.outcomes.forEach(o => {
-              if (!bestWin || o.price < bestWin.odds) {
-                bestWin = {
-                  pick: o.name,
-                  odds: o.price,
-                  probability: Math.round(100 / o.price)
-                };
-              }
-            });
-          }
-
-          // OVER / UNDER (ne tenisui)
-          if (!isTennis && m.key === "totals") {
-            m.outcomes.forEach(o => {
-              if (o.price < 1.5) return;
-
-              if (!bestTotal || o.price < bestTotal.odds) {
-                bestTotal = {
-                  pick: o.name,
-                  odds: o.price,
-                  line: o.point,
-                  probability: Math.round(100 / o.price)
-                };
-              }
-            });
-          }
-
-        });
+    // API key invalid
+    if (data.error_code === "INVALID_KEY") {
+      return res.status(401).json({
+        error: "API key is invalid or expired"
       });
+    }
 
-      if (bestWin) {
-        games.push({
-          home: game.home_team,
-          away: game.away_team,
-          win: bestWin,
-          total: bestTotal || null
-        });
-      }
+    // Limit reached
+    if (data.error_code === "OUT_OF_USAGE_CREDITS") {
+      return res.status(429).json({
+        error: "API usage limit reached"
+      });
+    }
+
+    if (!Array.isArray(data)) {
+      return res.status(200).json([]);
+    }
+
+    const formatted = data.map((game) => {
+      const bookmaker = game.bookmakers?.[0];
+
+      const h2h = bookmaker?.markets?.find(m => m.key === "h2h");
+      const totals = bookmaker?.markets?.find(m => m.key === "totals");
+
+      return {
+        id: game.id,
+        home_team: game.home_team,
+        away_team: game.away_team,
+        commence_time: game.commence_time || null,
+        win: h2h?.outcomes || [],
+        total: totals?.outcomes || []
+      };
     });
 
-    res.status(200).json(games);
-  } catch (e) {
-    res.status(500).json([]);
+    res.status(200).json(formatted);
+
+  } catch (error) {
+    console.error("SERVER ERROR:", error);
+    res.status(500).json({
+      error: "Server failed to fetch data"
+    });
   }
 }
