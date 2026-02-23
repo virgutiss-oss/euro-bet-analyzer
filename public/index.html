@@ -1,27 +1,26 @@
 <!DOCTYPE html>
-<html lang="lt">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Sports Betting Analyzer</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>Euro Bet Analyzer</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>🏆 Sports Betting Analyzer</h1>
+  <h1>EURO BET ANALYZER</h1>
 
-<div class="buttons">
-  <button onclick="showBasketball()">🏀 Krepšinis</button>
-  <button onclick="showSoccer()">⚽ Futbolas</button>
-  <button onclick="showHockey()">🏒 Ledo ritulys</button>
-  <button onclick="showTennis()">🎾 Tenisas</button>
-</div>
+  <div>
+    <button onclick="showFootball()">Football</button>
+    <button onclick="showBasketball()">Basketball</button>
+    <button onclick="showHockey()">Hockey</button>
+  </div>
 
-<!-- 🔥 TOP 3 -->
-<div id="top3" class="top3"></div>
+  <div id="leagues"></div>
 
-<div id="leagues"></div>
-<div id="output">Pasirink sportą</div>
+  <hr>
 
-<script src="/app.js"></script>
+  <div id="odds"></div>
+
+  <script src="app.js"></script>
 </body>
 </html>
