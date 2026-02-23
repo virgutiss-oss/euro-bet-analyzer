@@ -69,7 +69,7 @@ topBlock.style.display = "none";
 accuracyBtn.before(topBlock);
 
 /* =========================
-   LOAD DATA
+   LOAD
 ========================= */
 
 async function loadOdds(league) {
@@ -81,20 +81,20 @@ async function loadOdds(league) {
     const data = await res.json();
 
     if (!Array.isArray(data) || data.length === 0) {
-      output.innerHTML = "⚠️ Nėra duomenų šiai lygai";
+      output.innerHTML = "⚠️ Nėra duomenų";
       return;
     }
 
     allGames = data;
     renderGames();
 
-  } catch (err) {
+  } catch {
     output.innerHTML = "❌ Klaida kraunant duomenis";
   }
 }
 
 /* =========================
-   MARKET INTELLIGENCE
+   PRO MODEL CORE
 ========================= */
 
 function riskFilter(odds) {
@@ -102,86 +102,111 @@ function riskFilter(odds) {
   return odds >= 1.45 && odds <= 3.2;
 }
 
+function calculateAIScore(baseScore, odds) {
+  let score = baseScore * 8;
+
+  if (accuracyMode) score += 5;
+  if (odds < 1.30) score -= 10;
+  if (odds > 3.00) score -= 8;
+
+  if (score > 100) score = 100;
+  if (score < 0) score = 0;
+
+  return Math.round(score);
+}
+
+function getUnits(score) {
+  if (score >= 85) return 5;
+  if (score >= 75) return 4;
+  if (score >= 65) return 3;
+  if (score >= 55) return 2;
+  return 1;
+}
+
+function getRiskLevel(odds) {
+  if (odds <= 1.60) return "Low";
+  if (odds <= 2.20) return "Medium";
+  return "High";
+}
+
 /* ===== WIN MODEL ===== */
 
-function calculateWinScore(game) {
+function calculateWin(game) {
   if (!game.win || game.win.length < 2) return null;
 
-  const sorted = [...game.win].sort((a, b) => a.price - b.price);
-  const favorite = sorted[0];
+  const sorted = [...game.win].sort((a,b)=>a.price-b.price);
+  const fav = sorted[0];
   const second = sorted[1];
 
-  if (!riskFilter(favorite.price)) return null;
+  if (!riskFilter(fav.price)) return null;
 
-  const diff = second.price - favorite.price;
-  let dominance = diff * 10;
+  const diff = second.price - fav.price;
+  const baseScore = diff * 10;
 
-  if (favorite.price < 1.25) dominance *= 0.6;
-  if (favorite.price > 2.5) dominance *= 0.7;
+  const aiScore = calculateAIScore(baseScore, fav.price);
 
   return {
     type: "WIN",
-    name: favorite.name,
-    odds: favorite.price,
-    score: dominance
+    name: fav.name,
+    odds: fav.price,
+    aiScore,
+    confidence: aiScore + "%",
+    units: getUnits(aiScore),
+    risk: getRiskLevel(fav.price)
   };
 }
 
 /* ===== TOTAL MODEL ===== */
 
-function calculateTotalScore(game) {
+function calculateTotal(game) {
   if (!game.total || game.total.length < 2) return null;
 
-  const over = game.total.find(t => t.name.toLowerCase().includes("over"));
-  const under = game.total.find(t => t.name.toLowerCase().includes("under"));
+  const over = game.total.find(t=>t.name.toLowerCase().includes("over"));
+  const under = game.total.find(t=>t.name.toLowerCase().includes("under"));
 
   if (!over || !under) return null;
   if (!riskFilter(over.price)) return null;
 
   const line = over.point || 0;
-  let tempoBias = 0;
+  let baseScore = 5;
 
-  // Krepšiniui
-  if (line >= 225) tempoBias = 8;
-  if (line <= 210) tempoBias = 6;
+  if (line >= 225) baseScore += 3;
+  if (line <= 210) baseScore += 2;
 
-  // Futbolui
-  if (line >= 3 && line < 10) tempoBias = 6;
-  if (line <= 2) tempoBias = 5;
-
-  const closerOdds = Math.abs(over.price - under.price);
-  const marketBalance = (1 - closerOdds) * 5;
-
+  const aiScore = calculateAIScore(baseScore, over.price);
   const pick = over.price < under.price ? over : under;
 
   return {
     type: "TOTAL",
     name: `${pick.name} ${pick.point}`,
     odds: pick.price,
-    score: tempoBias + marketBalance
+    aiScore,
+    confidence: aiScore + "%",
+    units: getUnits(aiScore),
+    risk: getRiskLevel(pick.price)
   };
 }
 
 /* =========================
-   TOP 3 (TODAY)
+   TOP 3 TODAY
 ========================= */
 
 function getTop3(games) {
   const today = new Date().toLocaleDateString("lt-LT");
   let picks = [];
 
-  games.forEach(g => {
+  games.forEach(g=>{
     const gameDate = new Date(g.commence_time).toLocaleDateString("lt-LT");
     if (gameDate !== today) return;
 
-    const win = calculateWinScore(g);
-    const total = calculateTotalScore(g);
+    const win = calculateWin(g);
+    const total = calculateTotal(g);
 
-    if (win) picks.push({ match: `${g.home_team} vs ${g.away_team}`, ...win });
-    if (total) picks.push({ match: `${g.home_team} vs ${g.away_team}`, ...total });
+    if (win) picks.push({match:`${g.home_team} vs ${g.away_team}`,...win});
+    if (total) picks.push({match:`${g.home_team} vs ${g.away_team}`,...total});
   });
 
-  return picks.sort((a,b)=> b.score - a.score).slice(0,3);
+  return picks.sort((a,b)=>b.aiScore-a.aiScore).slice(0,3);
 }
 
 /* =========================
@@ -190,27 +215,30 @@ function getTop3(games) {
 
 function renderGames() {
   output.innerHTML = "";
-
   const top3 = getTop3(allGames);
 
   if (top3.length > 0) {
     topBlock.style.display = "block";
-    topBlock.innerHTML = "<h2>🔥 MARKET INTELLIGENCE TOP 3</h2>";
+    topBlock.innerHTML = "<h2>🔥 PRO AI TOP 3</h2>";
 
-    top3.forEach(t => {
+    top3.forEach(t=>{
       topBlock.innerHTML += `
         <div>
           <b>${t.match}</b><br>
-          🎯 ${t.name} @ ${t.odds}
+          🎯 ${t.name} @ ${t.odds}<br>
+          🤖 AI Score: ${t.aiScore}/100<br>
+          📊 Confidence: ${t.confidence}<br>
+          💰 Units: ${t.units}u<br>
+          ⚠ Risk: ${t.risk}
           <hr>
         </div>
       `;
     });
   }
 
-  allGames.forEach(g => {
-    const win = calculateWinScore(g);
-    const total = calculateTotalScore(g);
+  allGames.forEach(g=>{
+    const win = calculateWin(g);
+    const total = calculateTotal(g);
 
     const div = document.createElement("div");
     div.style.marginBottom = "25px";
@@ -219,12 +247,24 @@ function renderGames() {
       <h3>${g.home_team} vs ${g.away_team}</h3>
       🕒 ${new Date(g.commence_time).toLocaleString("lt-LT")}
       <div>
-        ${win ? `🏆 <b>${win.name}</b> @ ${win.odds}<br>` : ""}
-        ${total ? `📊 <b>${total.name} @ ${total.odds}</b>` : ""}
+        ${win ? renderPick(win) : ""}
+        ${total ? renderPick(total) : ""}
       </div>
       <hr>
     `;
 
     output.appendChild(div);
   });
+}
+
+function renderPick(pick){
+  return `
+    <div>
+      🎯 <b>${pick.name}</b> @ ${pick.odds}<br>
+      🤖 AI: ${pick.aiScore}/100 |
+      📊 ${pick.confidence} |
+      💰 ${pick.units}u |
+      ⚠ ${pick.risk}
+    </div><br>
+  `;
 }
