@@ -1,6 +1,5 @@
 const MIN_EDGE = 0.03;
 const bankroll = 100;
-
 // ================= MENU =================
 
 function showFootball() {
