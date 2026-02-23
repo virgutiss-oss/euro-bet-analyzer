@@ -2,15 +2,16 @@ const output = document.getElementById("output");
 const leaguesDiv = document.getElementById("leagues");
 
 let allGames = [];
-let accuracyMode = false;
+let accuracyMode = true; // konservatyvus režimas default ON
 let bankroll = 1000;
 
 /* ======================
-   SYNDICATE SETTINGS
+   SETTINGS
 ====================== */
 
-const MAX_DAILY_EXPOSURE = 0.15; // 15%
-const MAX_ACTIVE_BETS = 5;
+const MAX_DAILY_EXPOSURE = 0.12; // 12%
+const MAX_ACTIVE_BETS = 4;
+const MIN_EDGE = 0.02; // 2% minimalus edge
 
 /* ======================
    SPORT MENU
@@ -36,25 +37,7 @@ function showSoccer() {
 }
 
 /* ======================
-   ACCURACY MODE
-====================== */
-
-const accuracyBtn = document.createElement("button");
-accuracyBtn.innerText = "🎯 Accuracy Mode: OFF";
-accuracyBtn.style.marginBottom = "20px";
-
-accuracyBtn.onclick = () => {
-  accuracyMode = !accuracyMode;
-  accuracyBtn.innerText = accuracyMode
-    ? "🎯 Accuracy Mode: ON"
-    : "🎯 Accuracy Mode: OFF";
-  renderGames();
-};
-
-output.before(accuracyBtn);
-
-/* ======================
-   CORE ENGINE
+   CORE MATH
 ====================== */
 
 function marketProbability(winMarket) {
@@ -68,8 +51,9 @@ function marketProbability(winMarket) {
 function modelProbability(odds) {
   let prob = 1 / odds;
 
-  if (odds < 1.4) prob *= 0.90;
-  if (odds > 2.8) prob *= 0.85;
+  // konservatyvi korekcija
+  if (odds < 1.45) prob *= 0.92;
+  if (odds > 2.2) prob *= 0.90;
 
   return prob;
 }
@@ -84,7 +68,16 @@ function kellyStake(edge, odds) {
   return Math.max(0, kelly);
 }
 
-function syndicateGrade(score) {
+function hybridScore(edge, odds) {
+  let score = edge * 1000;
+
+  if (odds >= 1.55 && odds <= 2.2) score += 15;
+  if (odds < 1.45 || odds > 2.5) score -= 20;
+
+  return Math.max(0, Math.min(100, score));
+}
+
+function grade(score) {
   if (score > 70) return "AAA";
   if (score > 55) return "AA";
   if (score > 40) return "A";
@@ -102,25 +95,24 @@ function evaluateGame(game) {
   let picks = [];
 
   market.forEach(o => {
+    if (o.price < 1.45 || o.price > 2.5) return;
+
     const modelProb = modelProbability(o.price);
     const edge = calculateEdge(modelProb, o.trueProb);
 
-    if (edge <= 0) return;
-    if (accuracyMode && (o.price < 1.5 || o.price > 3)) return;
+    if (edge < MIN_EDGE) return;
 
     const kelly = kellyStake(edge, o.price);
     const stake = bankroll * kelly * 0.5;
-    const score = edge * 1000;
+    const score = hybridScore(edge, o.price);
 
     picks.push({
       match: `${game.home_team} vs ${game.away_team}`,
-      gameId: game.id,
       name: o.name,
       odds: o.price,
       edge,
       stake,
-      score,
-      projectedMove: edge > 0.04
+      score
     });
   });
 
@@ -128,7 +120,7 @@ function evaluateGame(game) {
 }
 
 /* ======================
-   RENDER SYNDICATE PORTFOLIO
+   RENDER PORTFOLIO
 ====================== */
 
 function renderGames() {
@@ -141,21 +133,17 @@ function renderGames() {
     allPicks = allPicks.concat(evaluated);
   });
 
-  // Sort by score
   allPicks.sort((a,b)=>b.score-a.score);
 
-  let usedGames = new Set();
   let exposure = 0;
   let active = 0;
 
   allPicks.forEach(p => {
     if (active >= MAX_ACTIVE_BETS) return;
-    if (usedGames.has(p.match)) return;
 
     const stakePercent = p.stake / bankroll;
     if (exposure + stakePercent > MAX_DAILY_EXPOSURE) return;
 
-    usedGames.add(p.match);
     exposure += stakePercent;
     active++;
 
@@ -165,10 +153,10 @@ function renderGames() {
     div.innerHTML = `
       <h3>${p.match}</h3>
       🎯 ${p.name} @ ${p.odds}<br>
-      🏆 Grade: ${syndicateGrade(p.score)}<br>
+      🏆 Grade: ${grade(p.score)}<br>
       📈 Edge: ${(p.edge*100).toFixed(2)}%<br>
       💰 Stake: ${p.stake.toFixed(2)} €<br>
-      📡 Line Move Expected: ${p.projectedMove ? "YES" : "No"}
+      🤖 Hybrid Score: ${p.score.toFixed(1)}
       <hr>
     `;
 
@@ -176,7 +164,7 @@ function renderGames() {
   });
 
   output.innerHTML += `
-    <h2>📊 Portfolio Summary</h2>
+    <h2>📊 Conservative Portfolio</h2>
     Active Bets: ${active}<br>
     Total Exposure: ${(exposure*100).toFixed(2)}%<br>
     Bankroll: ${bankroll} €
