@@ -1,68 +1,26 @@
 body {
-  font-family: system-ui, Arial, sans-serif;
-  background: linear-gradient(180deg, #020617, #0f172a);
-  color: #e5e7eb;
-  padding: 30px;
-}
-
-h1 {
-  font-size: 42px;
-  margin-bottom: 28px;
-}
-
-.buttons button {
-  font-size: 24px;
-  padding: 18px 34px;
-  margin-right: 16px;
-  border-radius: 12px;
-  background: #2563eb;
+  font-family: Arial;
+  background: #111;
   color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-#leagues button {
-  font-size: 21px;
-  padding: 16px 26px;
-  margin: 8px;
-  border-radius: 10px;
-  background: #334155;
-  color: #e5e7eb;
-  border: none;
-  cursor: pointer;
-}
-
-/* 🔥 TOP 3 */
-.top3 {
-  margin: 24px 0;
   padding: 20px;
-  border-radius: 14px;
-  background: #020617;
-  border: 2px solid #16a34a;
 }
 
-.top3 h2 {
-  font-size: 28px;
-  margin-bottom: 14px;
-  color: #22c55e;
+button {
+  padding: 10px 15px;
+  margin: 5px;
+  cursor: pointer;
+  background: #222;
+  color: white;
+  border: 1px solid #555;
 }
 
-.top3-card {
-  font-size: 22px;
-  margin-bottom: 10px;
+button:hover {
+  background: #444;
 }
 
-/* RUNGTYNĖS */
-.game {
-  background: #020617;
-  border: 1px solid #1e293b;
-  padding: 24px;
-  margin: 20px 0;
-  border-radius: 14px;
-  font-size: 22px;
-}
-
-.market {
-  margin-top: 10px;
+.pick-card {
+  background: #1e1e1e;
+  padding: 15px;
+  margin: 10px 0;
+  border: 1px solid #333;
 }
