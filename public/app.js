@@ -9,13 +9,19 @@ function showBasketball() {
   leaguesDiv.innerHTML = `
     <button onclick="loadOdds('basketball_nba')">NBA</button>
     <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
+    <button onclick="loadOdds('basketball_eurocup')">EuroCup</button>
   `;
 }
 
 function showSoccer() {
   leaguesDiv.innerHTML = `
     <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
+    <button onclick="loadOdds('soccer_uefa_europa_league')">Europa League</button>
+    <button onclick="loadOdds('soccer_england_premier_league')">Premier League</button>
+    <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
     <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
+    <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
+    <button onclick="loadOdds('soccer_france_ligue_1')">Ligue 1</button>
   `;
 }
 
@@ -56,19 +62,24 @@ async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
   topBlock.style.display = "none";
 
-  const res = await fetch(`/api/odds?sport=${league}`);
-  const data = await res.json();
+  try {
+    const res = await fetch(`/api/odds?sport=${league}`);
+    const data = await res.json();
 
-  if (!Array.isArray(data)) {
-    output.innerHTML = "⚠️ Nėra duomenų";
-    return;
+    if (!Array.isArray(data) || data.length === 0) {
+      output.innerHTML = "⚠️ Nėra duomenų";
+      return;
+    }
+
+    allGames = data;
+    renderGames();
+
+  } catch {
+    output.innerHTML = "❌ Klaida kraunant duomenis";
   }
-
-  allGames = data;
-  renderGames();
 }
 
-// ===== MARKET INTELLIGENCE SCORE =====
+// ===== MARKET INTELLIGENCE =====
 
 function riskFilter(odds) {
   if (!accuracyMode) return true;
@@ -77,15 +88,15 @@ function riskFilter(odds) {
 
 // WIN SCORE
 function calculateWinScore(game) {
-  if (game.win.length < 2) return null;
+  if (!game.win || game.win.length < 2) return null;
 
-  const [a, b] = game.win;
+  const sorted = [...game.win].sort((a, b) => a.price - b.price);
+  const favorite = sorted[0];
+  const second = sorted[1];
 
-  if (!riskFilter(a.price) || !riskFilter(b.price)) return null;
+  if (!riskFilter(favorite.price)) return null;
 
-  const diff = Math.abs(a.price - b.price);
-
-  let favorite = a.price < b.price ? a : b;
+  const diff = second.price - favorite.price;
 
   let dominance = diff * 10;
 
@@ -102,20 +113,21 @@ function calculateWinScore(game) {
 
 // TOTAL SCORE
 function calculateTotalScore(game) {
-  if (game.total.length < 2) return null;
+  if (!game.total || game.total.length < 2) return null;
 
   const over = game.total.find(t => t.name.toLowerCase().includes("over"));
   const under = game.total.find(t => t.name.toLowerCase().includes("under"));
 
   if (!over || !under) return null;
-  if (!riskFilter(over.price) || !riskFilter(under.price)) return null;
+  if (!riskFilter(over.price)) return null;
 
   const line = over.point || 0;
 
   let tempoBias = 0;
 
-  if (line >= 225) tempoBias = 8;
-  if (line <= 210) tempoBias = 6;
+  // Futbolui mažesnės ribos
+  if (line >= 3) tempoBias = 6;
+  if (line <= 2) tempoBias = 5;
 
   const closerOdds = Math.abs(over.price - under.price);
   const marketBalance = (1 - closerOdds) * 5;
