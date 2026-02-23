@@ -4,12 +4,17 @@ const leaguesDiv = document.getElementById("leagues");
 let allGames = [];
 let accuracyMode = false;
 
-// ===== SPORT MENU =====
+/* =========================
+   SPORT MENU
+========================= */
+
 function showBasketball() {
   leaguesDiv.innerHTML = `
     <button onclick="loadOdds('basketball_nba')">NBA</button>
     <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
     <button onclick="loadOdds('basketball_eurocup')">EuroCup</button>
+    <button onclick="loadOdds('basketball_champions_league')">FIBA Champions League</button>
+    <button onclick="loadOdds('basketball_fiba_world_cup')">FIBA World Cup</button>
   `;
 }
 
@@ -31,7 +36,10 @@ function showHockey() {
   `;
 }
 
-// ===== ACCURACY MODE =====
+/* =========================
+   ACCURACY MODE
+========================= */
+
 const accuracyBtn = document.createElement("button");
 accuracyBtn.innerText = "🎯 Accuracy Mode: OFF";
 accuracyBtn.style.marginBottom = "20px";
@@ -46,7 +54,10 @@ accuracyBtn.onclick = () => {
 
 output.before(accuracyBtn);
 
-// ===== TOP BLOCK =====
+/* =========================
+   TOP BLOCK
+========================= */
+
 const topBlock = document.createElement("div");
 topBlock.style.border = "3px solid #22c55e";
 topBlock.style.padding = "20px";
@@ -57,7 +68,10 @@ topBlock.style.display = "none";
 
 accuracyBtn.before(topBlock);
 
-// ===== LOAD =====
+/* =========================
+   LOAD DATA
+========================= */
+
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
   topBlock.style.display = "none";
@@ -67,26 +81,29 @@ async function loadOdds(league) {
     const data = await res.json();
 
     if (!Array.isArray(data) || data.length === 0) {
-      output.innerHTML = "⚠️ Nėra duomenų";
+      output.innerHTML = "⚠️ Nėra duomenų šiai lygai";
       return;
     }
 
     allGames = data;
     renderGames();
 
-  } catch {
+  } catch (err) {
     output.innerHTML = "❌ Klaida kraunant duomenis";
   }
 }
 
-// ===== MARKET INTELLIGENCE =====
+/* =========================
+   MARKET INTELLIGENCE
+========================= */
 
 function riskFilter(odds) {
   if (!accuracyMode) return true;
   return odds >= 1.45 && odds <= 3.2;
 }
 
-// WIN SCORE
+/* ===== WIN MODEL ===== */
+
 function calculateWinScore(game) {
   if (!game.win || game.win.length < 2) return null;
 
@@ -97,7 +114,6 @@ function calculateWinScore(game) {
   if (!riskFilter(favorite.price)) return null;
 
   const diff = second.price - favorite.price;
-
   let dominance = diff * 10;
 
   if (favorite.price < 1.25) dominance *= 0.6;
@@ -111,7 +127,8 @@ function calculateWinScore(game) {
   };
 }
 
-// TOTAL SCORE
+/* ===== TOTAL MODEL ===== */
+
 function calculateTotalScore(game) {
   if (!game.total || game.total.length < 2) return null;
 
@@ -122,11 +139,14 @@ function calculateTotalScore(game) {
   if (!riskFilter(over.price)) return null;
 
   const line = over.point || 0;
-
   let tempoBias = 0;
 
-  // Futbolui mažesnės ribos
-  if (line >= 3) tempoBias = 6;
+  // Krepšiniui
+  if (line >= 225) tempoBias = 8;
+  if (line <= 210) tempoBias = 6;
+
+  // Futbolui
+  if (line >= 3 && line < 10) tempoBias = 6;
   if (line <= 2) tempoBias = 5;
 
   const closerOdds = Math.abs(over.price - under.price);
@@ -142,7 +162,10 @@ function calculateTotalScore(game) {
   };
 }
 
-// ===== TOP 3 TODAY =====
+/* =========================
+   TOP 3 (TODAY)
+========================= */
+
 function getTop3(games) {
   const today = new Date().toLocaleDateString("lt-LT");
   let picks = [];
@@ -161,7 +184,10 @@ function getTop3(games) {
   return picks.sort((a,b)=> b.score - a.score).slice(0,3);
 }
 
-// ===== RENDER =====
+/* =========================
+   RENDER
+========================= */
+
 function renderGames() {
   output.innerHTML = "";
 
@@ -194,7 +220,7 @@ function renderGames() {
       🕒 ${new Date(g.commence_time).toLocaleString("lt-LT")}
       <div>
         ${win ? `🏆 <b>${win.name}</b> @ ${win.odds}<br>` : ""}
-        ${total ? `📊 <b>${total.name}</b> @ ${total.odds}` : ""}
+        ${total ? `📊 <b>${total.name} @ ${total.odds}</b>` : ""}
       </div>
       <hr>
     `;
