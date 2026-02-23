@@ -5,6 +5,10 @@ body {
   padding: 20px;
 }
 
+h1 {
+  font-size: 28px;
+}
+
 button {
   padding: 10px 15px;
   margin: 5px;
@@ -21,6 +25,6 @@ button:hover {
 .pick-card {
   background: #1e1e1e;
   padding: 15px;
-  margin: 10px 0;
+  margin: 15px 0;
   border: 1px solid #333;
 }
