@@ -3,6 +3,7 @@ const leaguesDiv = document.getElementById("leagues");
 
 let allGames = [];
 let accuracyMode = false;
+let bankroll = 1000; // gali keisti
 
 /* ======================
    SPORT MENU
@@ -27,12 +28,6 @@ function showSoccer() {
   `;
 }
 
-function showHockey() {
-  leaguesDiv.innerHTML = `
-    <button onclick="loadOdds('icehockey_nhl')">NHL</button>
-  `;
-}
-
 /* ======================
    ACCURACY MODE
 ====================== */
@@ -52,26 +47,11 @@ accuracyBtn.onclick = () => {
 output.before(accuracyBtn);
 
 /* ======================
-   TOP BLOCK
-====================== */
-
-const topBlock = document.createElement("div");
-topBlock.style.border = "3px solid #22c55e";
-topBlock.style.padding = "20px";
-topBlock.style.marginBottom = "25px";
-topBlock.style.borderRadius = "12px";
-topBlock.style.background = "#111";
-topBlock.style.display = "none";
-
-accuracyBtn.before(topBlock);
-
-/* ======================
    LOAD
 ====================== */
 
 async function loadOdds(league) {
   output.innerHTML = "⏳ Kraunama...";
-  topBlock.style.display = "none";
 
   const res = await fetch(`/api/odds?sport=${league}`);
   const data = await res.json();
@@ -86,98 +66,95 @@ async function loadOdds(league) {
 }
 
 /* ======================
-   ELITE CALCULATIONS
+   CORE INSTITUTIONAL ENGINE
 ====================== */
 
-function impliedProbability(odds) {
-  return 1 / odds;
+// Market implied probability su margin korekcija
+function marketProbability(winMarket) {
+  const total = winMarket.reduce((sum, o) => sum + (1 / o.price), 0);
+  return winMarket.map(o => ({
+    ...o,
+    trueProb: (1 / o.price) / total
+  }));
 }
 
+// Model probability (patobulintas)
 function modelProbability(odds) {
-  let base = 1 / odds;
+  let prob = 1 / odds;
 
-  if (odds < 1.4) base *= 0.92;
-  if (odds > 2.5) base *= 0.88;
+  if (odds < 1.4) prob *= 0.90;
+  if (odds > 2.8) prob *= 0.85;
 
-  return base;
+  return prob;
 }
 
-function calculateValue(odds) {
-  const implied = impliedProbability(odds);
-  const model = modelProbability(odds);
-  return model - implied;
+// Edge
+function calculateEdge(modelProb, marketProb) {
+  return modelProb - marketProb;
 }
 
-function confidenceScore(value, odds) {
-  let score = value * 1000;
+// Kelly Criterion
+function kellyStake(edge, odds) {
+  const b = odds - 1;
+  const kelly = (edge * odds) / b;
+  return Math.max(0, kelly);
+}
 
-  if (odds < 1.5) score += 10;
-  if (odds > 3) score -= 15;
+// Trap detection
+function trapFilter(odds, edge) {
+  if (odds < 1.35 && edge > 0.02) return true; // suspicious favorite
+  if (odds > 3.5 && edge > 0.05) return true;  // inflated dog
+  return false;
+}
+
+// Institutional Score
+function institutionalScore(edge, odds, kelly) {
+  let score = edge * 1000;
+
+  if (odds >= 1.6 && odds <= 2.8) score += 15;
+  if (kelly > 0.05) score += 10;
+  if (trapFilter(odds, edge)) score -= 25;
 
   return Math.max(0, Math.min(100, score));
 }
 
-function unitSizing(confidence) {
-  if (confidence > 75) return 5;
-  if (confidence > 60) return 4;
-  if (confidence > 45) return 3;
-  if (confidence > 30) return 2;
-  return 1;
-}
-
-function heatIndicator(confidence) {
-  if (confidence > 75) return "🚀 HOT";
-  if (confidence > 50) return "🔥 WARM";
-  return "🧊 COLD";
-}
-
 /* ======================
-   PICK ENGINE
+   EVALUATION
 ====================== */
 
 function evaluateGame(game) {
-  let picks = [];
+  if (!game.win || game.win.length < 2) return null;
 
-  if (game.win && game.win.length >= 2) {
-    const fav = [...game.win].sort((a,b)=>a.price-b.price)[0];
-    const value = calculateValue(fav.price);
+  const market = marketProbability(game.win);
 
-    if (!accuracyMode || (fav.price >= 1.45 && fav.price <= 3.2)) {
-      const conf = confidenceScore(value, fav.price);
-      picks.push({
+  let bestPick = null;
+
+  market.forEach(o => {
+    const modelProb = modelProbability(o.price);
+    const edge = calculateEdge(modelProb, o.trueProb);
+
+    if (edge <= 0) return;
+
+    if (accuracyMode && (o.price < 1.5 || o.price > 3)) return;
+
+    const kelly = kellyStake(edge, o.price);
+    const stake = bankroll * kelly * 0.5; // half Kelly
+
+    const score = institutionalScore(edge, o.price, kelly);
+
+    if (!bestPick || score > bestPick.score) {
+      bestPick = {
         match: `${game.home_team} vs ${game.away_team}`,
-        type: "WIN",
-        name: fav.name,
-        odds: fav.price,
-        confidence: conf,
-        units: unitSizing(conf),
-        heat: heatIndicator(conf)
-      });
+        name: o.name,
+        odds: o.price,
+        edge: edge,
+        stake: stake,
+        score: score
+      };
     }
-  }
-
-  return picks;
-}
-
-/* ======================
-   TODAY TOP 3
-====================== */
-
-function getTop3() {
-  const today = new Date().toLocaleDateString("lt-LT");
-  let allPicks = [];
-
-  allGames.forEach(g => {
-    const gameDate = new Date(g.commence_time).toLocaleDateString("lt-LT");
-    if (gameDate !== today) return;
-
-    const picks = evaluateGame(g);
-    allPicks.push(...picks);
   });
 
-  return allPicks
-    .sort((a,b)=>b.confidence-a.confidence)
-    .slice(0,3);
+  return bestPick;
 }
 
 /* ======================
@@ -186,41 +163,29 @@ function getTop3() {
 
 function renderGames() {
   output.innerHTML = "";
-  const top3 = getTop3();
 
-  if (top3.length) {
-    topBlock.style.display = "block";
-    topBlock.innerHTML = "<h2>🏆 ELITE TOP 3</h2>";
-
-    top3.forEach(p => {
-      topBlock.innerHTML += `
-        <div>
-          <b>${p.match}</b><br>
-          🎯 ${p.name} @ ${p.odds}<br>
-          📊 Confidence: ${p.confidence.toFixed(1)}%<br>
-          💰 ${p.units} Units<br>
-          ${p.heat}
-          <hr>
-        </div>
-      `;
-    });
-  }
+  let picks = [];
 
   allGames.forEach(g => {
-    const picks = evaluateGame(g);
+    const p = evaluateGame(g);
+    if (p) picks.push(p);
+  });
 
-    picks.forEach(p => {
+  picks
+    .sort((a,b)=>b.score-a.score)
+    .forEach(p => {
       const div = document.createElement("div");
-      div.style.marginBottom = "20px";
+      div.style.marginBottom = "25px";
 
       div.innerHTML = `
         <h3>${p.match}</h3>
         🎯 ${p.name} @ ${p.odds}<br>
-        📊 ${p.confidence.toFixed(1)}% | 💰 ${p.units}u | ${p.heat}
+        📊 Institutional Score: ${p.score.toFixed(1)}<br>
+        📈 Edge: ${(p.edge*100).toFixed(2)}%<br>
+        💰 Stake: ${p.stake.toFixed(2)} €
         <hr>
       `;
 
       output.appendChild(div);
     });
-  });
 }
