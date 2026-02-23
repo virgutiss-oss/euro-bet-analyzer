@@ -3,7 +3,14 @@ const leaguesDiv = document.getElementById("leagues");
 
 let allGames = [];
 let accuracyMode = false;
-let bankroll = 1000; // gali keisti
+let bankroll = 1000;
+
+/* ======================
+   SYNDICATE SETTINGS
+====================== */
+
+const MAX_DAILY_EXPOSURE = 0.15; // 15%
+const MAX_ACTIVE_BETS = 5;
 
 /* ======================
    SPORT MENU
@@ -47,6 +54,136 @@ accuracyBtn.onclick = () => {
 output.before(accuracyBtn);
 
 /* ======================
+   CORE ENGINE
+====================== */
+
+function marketProbability(winMarket) {
+  const total = winMarket.reduce((sum, o) => sum + (1 / o.price), 0);
+  return winMarket.map(o => ({
+    ...o,
+    trueProb: (1 / o.price) / total
+  }));
+}
+
+function modelProbability(odds) {
+  let prob = 1 / odds;
+
+  if (odds < 1.4) prob *= 0.90;
+  if (odds > 2.8) prob *= 0.85;
+
+  return prob;
+}
+
+function calculateEdge(modelProb, marketProb) {
+  return modelProb - marketProb;
+}
+
+function kellyStake(edge, odds) {
+  const b = odds - 1;
+  const kelly = (edge * odds) / b;
+  return Math.max(0, kelly);
+}
+
+function syndicateGrade(score) {
+  if (score > 70) return "AAA";
+  if (score > 55) return "AA";
+  if (score > 40) return "A";
+  return "B";
+}
+
+/* ======================
+   EVALUATION
+====================== */
+
+function evaluateGame(game) {
+  if (!game.win || game.win.length < 2) return [];
+
+  const market = marketProbability(game.win);
+  let picks = [];
+
+  market.forEach(o => {
+    const modelProb = modelProbability(o.price);
+    const edge = calculateEdge(modelProb, o.trueProb);
+
+    if (edge <= 0) return;
+    if (accuracyMode && (o.price < 1.5 || o.price > 3)) return;
+
+    const kelly = kellyStake(edge, o.price);
+    const stake = bankroll * kelly * 0.5;
+    const score = edge * 1000;
+
+    picks.push({
+      match: `${game.home_team} vs ${game.away_team}`,
+      gameId: game.id,
+      name: o.name,
+      odds: o.price,
+      edge,
+      stake,
+      score,
+      projectedMove: edge > 0.04
+    });
+  });
+
+  return picks;
+}
+
+/* ======================
+   RENDER SYNDICATE PORTFOLIO
+====================== */
+
+function renderGames() {
+  output.innerHTML = "";
+
+  let allPicks = [];
+
+  allGames.forEach(g => {
+    const evaluated = evaluateGame(g);
+    allPicks = allPicks.concat(evaluated);
+  });
+
+  // Sort by score
+  allPicks.sort((a,b)=>b.score-a.score);
+
+  let usedGames = new Set();
+  let exposure = 0;
+  let active = 0;
+
+  allPicks.forEach(p => {
+    if (active >= MAX_ACTIVE_BETS) return;
+    if (usedGames.has(p.match)) return;
+
+    const stakePercent = p.stake / bankroll;
+    if (exposure + stakePercent > MAX_DAILY_EXPOSURE) return;
+
+    usedGames.add(p.match);
+    exposure += stakePercent;
+    active++;
+
+    const div = document.createElement("div");
+    div.style.marginBottom = "25px";
+
+    div.innerHTML = `
+      <h3>${p.match}</h3>
+      🎯 ${p.name} @ ${p.odds}<br>
+      🏆 Grade: ${syndicateGrade(p.score)}<br>
+      📈 Edge: ${(p.edge*100).toFixed(2)}%<br>
+      💰 Stake: ${p.stake.toFixed(2)} €<br>
+      📡 Line Move Expected: ${p.projectedMove ? "YES" : "No"}
+      <hr>
+    `;
+
+    output.appendChild(div);
+  });
+
+  output.innerHTML += `
+    <h2>📊 Portfolio Summary</h2>
+    Active Bets: ${active}<br>
+    Total Exposure: ${(exposure*100).toFixed(2)}%<br>
+    Bankroll: ${bankroll} €
+  `;
+}
+
+/* ======================
    LOAD
 ====================== */
 
@@ -63,129 +200,4 @@ async function loadOdds(league) {
 
   allGames = data;
   renderGames();
-}
-
-/* ======================
-   CORE INSTITUTIONAL ENGINE
-====================== */
-
-// Market implied probability su margin korekcija
-function marketProbability(winMarket) {
-  const total = winMarket.reduce((sum, o) => sum + (1 / o.price), 0);
-  return winMarket.map(o => ({
-    ...o,
-    trueProb: (1 / o.price) / total
-  }));
-}
-
-// Model probability (patobulintas)
-function modelProbability(odds) {
-  let prob = 1 / odds;
-
-  if (odds < 1.4) prob *= 0.90;
-  if (odds > 2.8) prob *= 0.85;
-
-  return prob;
-}
-
-// Edge
-function calculateEdge(modelProb, marketProb) {
-  return modelProb - marketProb;
-}
-
-// Kelly Criterion
-function kellyStake(edge, odds) {
-  const b = odds - 1;
-  const kelly = (edge * odds) / b;
-  return Math.max(0, kelly);
-}
-
-// Trap detection
-function trapFilter(odds, edge) {
-  if (odds < 1.35 && edge > 0.02) return true; // suspicious favorite
-  if (odds > 3.5 && edge > 0.05) return true;  // inflated dog
-  return false;
-}
-
-// Institutional Score
-function institutionalScore(edge, odds, kelly) {
-  let score = edge * 1000;
-
-  if (odds >= 1.6 && odds <= 2.8) score += 15;
-  if (kelly > 0.05) score += 10;
-  if (trapFilter(odds, edge)) score -= 25;
-
-  return Math.max(0, Math.min(100, score));
-}
-
-/* ======================
-   EVALUATION
-====================== */
-
-function evaluateGame(game) {
-  if (!game.win || game.win.length < 2) return null;
-
-  const market = marketProbability(game.win);
-
-  let bestPick = null;
-
-  market.forEach(o => {
-    const modelProb = modelProbability(o.price);
-    const edge = calculateEdge(modelProb, o.trueProb);
-
-    if (edge <= 0) return;
-
-    if (accuracyMode && (o.price < 1.5 || o.price > 3)) return;
-
-    const kelly = kellyStake(edge, o.price);
-    const stake = bankroll * kelly * 0.5; // half Kelly
-
-    const score = institutionalScore(edge, o.price, kelly);
-
-    if (!bestPick || score > bestPick.score) {
-      bestPick = {
-        match: `${game.home_team} vs ${game.away_team}`,
-        name: o.name,
-        odds: o.price,
-        edge: edge,
-        stake: stake,
-        score: score
-      };
-    }
-  });
-
-  return bestPick;
-}
-
-/* ======================
-   RENDER
-====================== */
-
-function renderGames() {
-  output.innerHTML = "";
-
-  let picks = [];
-
-  allGames.forEach(g => {
-    const p = evaluateGame(g);
-    if (p) picks.push(p);
-  });
-
-  picks
-    .sort((a,b)=>b.score-a.score)
-    .forEach(p => {
-      const div = document.createElement("div");
-      div.style.marginBottom = "25px";
-
-      div.innerHTML = `
-        <h3>${p.match}</h3>
-        🎯 ${p.name} @ ${p.odds}<br>
-        📊 Institutional Score: ${p.score.toFixed(1)}<br>
-        📈 Edge: ${(p.edge*100).toFixed(2)}%<br>
-        💰 Stake: ${p.stake.toFixed(2)} €
-        <hr>
-      `;
-
-      output.appendChild(div);
-    });
 }
