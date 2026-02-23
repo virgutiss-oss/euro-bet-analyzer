@@ -1,28 +1,37 @@
 // ===============================
-// EURO BET ANALYZER – TOP 3 HYBRID
+// EURO BET ANALYZER – STABLE TOP 3
 // ===============================
 
 const API_KEY = "YOUR_API_KEY_HERE";
 const BASE_URL = "https://api.the-odds-api.com/v4/sports";
 
-const MIN_EDGE = 0.04;
+const MIN_EDGE = 0.03;
 const bankroll = 100;
 
 let allGames = [];
 
 // ===============================
-// LOAD LEAGUE
+// LOAD ODDS
 // ===============================
 
 async function loadOdds(sportKey) {
+
+  document.getElementById("odds").innerHTML = "<p>Kraunama...</p>";
+
   try {
+
     const res = await fetch(
       `${BASE_URL}/${sportKey}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`
     );
 
+    if (!res.ok) {
+      throw new Error("API klaida");
+    }
+
     const data = await res.json();
-    if (!Array.isArray(data)) {
-      alert("API klaida");
+
+    if (!Array.isArray(data) || data.length === 0) {
+      document.getElementById("odds").innerHTML = "<p>Šiandien rungtynių nėra</p>";
       return;
     }
 
@@ -31,7 +40,7 @@ async function loadOdds(sportKey) {
 
   } catch (err) {
     console.error(err);
-    alert("Nepavyko užkrauti duomenų");
+    document.getElementById("odds").innerHTML = "<p>Klaida kraunant duomenis</p>";
   }
 }
 
@@ -48,6 +57,7 @@ function calculateEdge(modelProb, impliedProb) {
 }
 
 function kelly(edge, odds) {
+  if (odds <= 1) return 0;
   return edge / (odds - 1);
 }
 
@@ -67,22 +77,26 @@ function isToday(dateStr) {
 }
 
 // ===============================
-// WIN / LOSS ANALYSIS
+// WIN ANALYSIS
 // ===============================
 
 function evaluateH2H(game) {
+
   if (!game.bookmakers) return null;
 
   let bestPick = null;
 
   game.bookmakers.forEach(book => {
+
     const market = book.markets.find(m => m.key === "h2h");
     if (!market) return;
 
     market.outcomes.forEach(outcome => {
 
+      if (!outcome.price) return;
+
       const implied = impliedProbability(outcome.price);
-      const modelProb = implied * 1.05; // konservatyvus model boost
+      const modelProb = implied * 1.04;
 
       const edge = calculateEdge(modelProb, implied);
       if (edge < MIN_EDGE) return;
@@ -102,28 +116,33 @@ function evaluateH2H(game) {
       }
 
     });
+
   });
 
   return bestPick;
 }
 
 // ===============================
-// OVER / UNDER ANALYSIS
+// TOTALS ANALYSIS (FIXED BUG)
 // ===============================
 
 function evaluateTotals(game) {
+
   if (!game.bookmakers) return null;
 
   let bestPick = null;
 
   game.bookmakers.forEach(book => {
+
     const market = book.markets.find(m => m.key === "totals");
     if (!market) return;
 
     market.outcomes.forEach(outcome => {
 
+      if (!outcome.price || outcome.point === undefined) return;
+
       const implied = impliedProbability(outcome.price);
-      const modelProb = implied * 1.06; // šiek tiek stipresnis boost totals
+      const modelProb = implied * 1.05;
 
       const edge = calculateEdge(modelProb, implied);
       if (edge < MIN_EDGE) return;
@@ -134,7 +153,7 @@ function evaluateTotals(game) {
         bestPick = {
           type: "OVER/UNDER",
           match: `${game.home_team} vs ${game.away_team}`,
-          pick: outcome.name + " " + market.outcomes[0].point,
+          pick: `${outcome.name} ${outcome.point}`,
           odds: outcome.price,
           edge,
           score,
@@ -143,6 +162,7 @@ function evaluateTotals(game) {
       }
 
     });
+
   });
 
   return bestPick;
@@ -166,12 +186,12 @@ function buildTop3() {
     const winPick = evaluateH2H(game);
     const totalPick = evaluateTotals(game);
 
-    const candidates = [];
-    if (winPick) candidates.push(winPick);
-    if (totalPick) candidates.push(totalPick);
+    const options = [];
+    if (winPick) options.push(winPick);
+    if (totalPick) options.push(totalPick);
 
-    if (candidates.length > 0) {
-      const best = candidates.sort((a,b)=>b.score-a.score)[0];
+    if (options.length > 0) {
+      const best = options.sort((a,b)=>b.score-a.score)[0];
       picks.push(best);
     }
 
@@ -182,11 +202,11 @@ function buildTop3() {
     .slice(0,3);
 
   if (picks.length === 0) {
-    container.innerHTML = "<p>Nėra TOP 3 šiandienai</p>";
+    container.innerHTML = "<p>Šiandien value pasirinkimų nėra</p>";
     return;
   }
 
-  container.innerHTML = "<h2>🔥 TOP 3 (ŠIANDIEN)</h2>";
+  container.innerHTML = "<h2>🔥 TOP 3 ŠIANDIEN</h2>";
 
   picks.forEach(p => {
 
@@ -195,27 +215,27 @@ function buildTop3() {
 
     div.innerHTML = `
       <h3>${p.match}</h3>
-      <p><strong>Tipas:</strong> ${p.type}</p>
-      <p><strong>Pick:</strong> ${p.pick}</p>
-      <p><strong>Odds:</strong> ${p.odds}</p>
-      <p><strong>Edge:</strong> ${(p.edge*100).toFixed(2)}%</p>
-      <p><strong>Stake:</strong> ${p.stake.toFixed(2)}€</p>
+      <p><b>${p.type}</b></p>
+      <p>Pick: ${p.pick}</p>
+      <p>Odds: ${p.odds}</p>
+      <p>Edge: ${(p.edge*100).toFixed(2)}%</p>
+      <p>Stake: ${p.stake.toFixed(2)}€</p>
     `;
 
     container.appendChild(div);
 
   });
+
 }
 
 // ===============================
-// SPORT MENU
+// MENU (NEBESUGRIŪNA)
 // ===============================
 
 function showFootball() {
   document.getElementById("leagues").innerHTML = `
     <button onclick="loadOdds('soccer_epl')">Premier League</button>
     <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
-    <button onclick="loadOdds('soccer_germany_bundesliga2')">2 Bundesliga</button>
     <button onclick="loadOdds('soccer_france_ligue_one')">Ligue 1</button>
   `;
 }
