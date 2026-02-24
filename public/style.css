@@ -1,56 +1,8 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #0f0f0f;
-  color: white;
-  padding: 25px;
-}
-
-h1 {
-  font-size: 36px;
-  margin-bottom: 25px;
-}
-
-.menu button,
-#leagues button {
-  padding: 22px 40px;
-  margin: 10px;
-  font-size: 22px;
-  font-weight: bold;
-  border-radius: 14px;
-  border: none;
-  cursor: pointer;
-  background: #1f1f1f;
-  color: white;
-  transition: 0.2s;
-}
-
-.menu button:hover,
-#leagues button:hover {
-  background: #333;
-  transform: scale(1.08);
-}
-
-.bankroll-box {
-  margin: 20px 0;
-  font-size: 20px;
-}
-
-input {
-  padding: 12px;
-  font-size: 20px;
-  width: 150px;
-  margin-left: 10px;
-}
-
-.pick-card {
-  background: #1c1c1c;
+.top-card {
+  background: #1c0000;
+  border: 3px solid red;
   padding: 25px;
   margin: 20px 0;
-  border-radius: 15px;
-  border: 2px solid #00ff88;
-  box-shadow: 0 0 15px rgba(0,255,120,0.3);
-}
-
-.pick-card h3 {
-  font-size: 24px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(255,0,0,0.5);
 }
