@@ -1,20 +1,12 @@
 const MAX_PICKS = 5;
-const MIN_EDGE = 0.02;
 
 function showFootball() {
   document.getElementById("leagues").innerHTML = `
     <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
-    <button onclick="loadOdds('soccer_uefa_europa_league')">Europa League</button>
-    <button onclick="loadOdds('soccer_uefa_conference_league')">Conference League</button>
     <button onclick="loadOdds('soccer_epl')">Premier League</button>
     <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
     <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
     <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
-    <button onclick="loadOdds('soccer_france_ligue_one')">Ligue 1</button>
-    <button onclick="loadOdds('soccer_netherlands_eredivisie')">Eredivisie</button>
-    <button onclick="loadOdds('soccer_portugal_primeira_liga')">Portugal Liga</button>
-    <button onclick="loadOdds('soccer_belgium_first_div')">Belgium League</button>
-    <button onclick="loadOdds('soccer_turkey_super_league')">Turkey Super Lig</button>
   `;
 }
 
@@ -23,11 +15,6 @@ function showBasketball() {
     <button onclick="loadOdds('basketball_nba')">NBA</button>
     <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
     <button onclick="loadOdds('basketball_eurocup')">EuroCup</button>
-    <button onclick="loadOdds('basketball_fiba')">FIBA</button>
-    <button onclick="loadOdds('basketball_spain_acb')">Spain ACB</button>
-    <button onclick="loadOdds('basketball_italy_serie_a')">Italy Serie A</button>
-    <button onclick="loadOdds('basketball_germany_bbl')">Germany BBL</button>
-    <button onclick="loadOdds('basketball_france_lnb')">France LNB</button>
   `;
 }
 
@@ -35,9 +22,6 @@ function showHockey() {
   document.getElementById("leagues").innerHTML = `
     <button onclick="loadOdds('icehockey_nhl')">NHL</button>
     <button onclick="loadOdds('icehockey_sweden_shl')">Sweden SHL</button>
-    <button onclick="loadOdds('icehockey_finland_liiga')">Finland Liiga</button>
-    <button onclick="loadOdds('icehockey_czech_extraliga')">Czech Extraliga</button>
-    <button onclick="loadOdds('icehockey_switzerland_nl')">Switzerland NL</button>
   `;
 }
 
@@ -54,93 +38,124 @@ async function loadOdds(sportKey) {
       return;
     }
 
-    buildTop5(games);
+    buildFullBoard(games);
 
   } catch {
     container.innerHTML = "<p>Server klaida</p>";
   }
 }
 
-function impliedProbability(odds) { return 1 / odds; }
-function kelly(edge, odds) { return edge / (odds - 1); }
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleString();
+}
 
-function buildTop5(games) {
-  const bankroll = parseFloat(document.getElementById("bankrollInput").value) || 100;
+function buildFullBoard(games) {
+
   const container = document.getElementById("odds");
   container.innerHTML = "";
 
   let allPicks = [];
 
   games.forEach(game => {
+
     if (!game.bookmakers) return;
 
-    let bestWin = null;
-    let bestTotal = null;
+    let gameDiv = document.createElement("div");
+    gameDiv.className = "pick-card";
 
-    game.bookmakers.forEach(book => {
-      book.markets.forEach(market => {
-        if (market.key !== "h2h" && market.key !== "totals") return;
+    gameDiv.innerHTML = `
+      <h3>${game.home_team} vs ${game.away_team}</h3>
+      <p>📅 ${formatDate(game.commence_time)}</p>
+    `;
 
-        market.outcomes.forEach(outcome => {
-          if (!outcome.price) return;
+    let bestWin = calculateBestMarket(game, "h2h");
+    let bestTotal = calculateBestMarket(game, "totals");
 
-          const implied = impliedProbability(outcome.price);
-          const modelProb = implied * 1.05;
-          const edge = modelProb - implied;
+    if (bestWin) {
+      gameDiv.innerHTML += `
+        <p><b>WIN:</b> ${bestWin.pick} @ ${bestWin.odds}</p>
+      `;
+      allPicks.push(bestWin);
+    }
 
-          if (edge < MIN_EDGE) return;
+    if (bestTotal) {
+      gameDiv.innerHTML += `
+        <p><b>OVER/UNDER:</b> ${bestTotal.pick} @ ${bestTotal.odds}</p>
+      `;
+      allPicks.push(bestTotal);
+    }
 
-          const roi = (modelProb * outcome.price - 1) * 100;
-          const stake = bankroll * Math.max(0, kelly(edge, outcome.price)) * 0.5;
-
-          const pick = {
-            match: `${game.home_team} vs ${game.away_team}`,
-            type: market.key === "h2h" ? "WIN" : "OVER/UNDER",
-            pick: market.key === "totals"
-              ? `${outcome.name} ${outcome.point || ""}`
-              : outcome.name,
-            odds: outcome.price,
-            edge,
-            roi,
-            stake
-          };
-
-          if (market.key === "h2h") {
-            if (!bestWin || edge > bestWin.edge) bestWin = pick;
-          } else {
-            if (!bestTotal || edge > bestTotal.edge) bestTotal = pick;
-          }
-        });
-      });
-    });
-
-    if (bestWin) allPicks.push(bestWin);
-    if (bestTotal) allPicks.push(bestTotal);
+    container.appendChild(gameDiv);
   });
 
+  // TOP 5 pagal realų edge
   const top5 = allPicks
+    .filter(p => p.edge > 0)
     .sort((a,b)=>b.edge-a.edge)
     .slice(0,MAX_PICKS);
 
-  if (top5.length === 0) {
-    container.innerHTML = "<p>Šiuo metu nėra value picks</p>";
-    return;
+  if (top5.length > 0) {
+    const topDiv = document.createElement("div");
+    topDiv.innerHTML = `<h2>🔥 REAL MARKET TOP 5</h2>`;
+    container.prepend(topDiv);
+
+    top5.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "pick-card";
+      div.innerHTML = `
+        <h3>${p.match}</h3>
+        <p>${p.type}</p>
+        <p>Pick: ${p.pick}</p>
+        <p>Odds: ${p.odds}</p>
+        <p>Edge vs Market: ${(p.edge*100).toFixed(2)}%</p>
+      `;
+      container.prepend(div);
+    });
   }
+}
 
-  container.innerHTML = `<h2>🔥 EURO ELITE TOP 5</h2>`;
+function calculateBestMarket(game, marketKey) {
 
-  top5.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "pick-card";
-    div.innerHTML = `
-      <h3>${p.match}</h3>
-      <p><b>${p.type}</b></p>
-      <p>Pick: ${p.pick}</p>
-      <p>Odds: ${p.odds}</p>
-      <p>Edge: ${(p.edge*100).toFixed(2)}%</p>
-      <p>ROI: ${p.roi.toFixed(2)}%</p>
-      <p>Stake: ${p.stake.toFixed(2)}€</p>
-    `;
-    container.appendChild(div);
+  let bestOutcome = null;
+  let marketPrices = {};
+
+  game.bookmakers.forEach(book => {
+    book.markets.forEach(market => {
+
+      if (market.key !== marketKey) return;
+
+      market.outcomes.forEach(outcome => {
+
+        if (!outcome.price) return;
+
+        if (!marketPrices[outcome.name]) {
+          marketPrices[outcome.name] = [];
+        }
+
+        marketPrices[outcome.name].push(outcome.price);
+      });
+    });
   });
+
+  Object.keys(marketPrices).forEach(name => {
+
+    const prices = marketPrices[name];
+    const bestOdds = Math.max(...prices);
+    const avgOdds = prices.reduce((a,b)=>a+b,0) / prices.length;
+
+    const edge = (bestOdds - avgOdds) / avgOdds;
+
+    if (!bestOutcome || edge > bestOutcome.edge) {
+      bestOutcome = {
+        match: `${game.home_team} vs ${game.away_team}`,
+        type: marketKey === "h2h" ? "WIN" : "OVER/UNDER",
+        pick: name,
+        odds: bestOdds,
+        edge
+      };
+    }
+  });
+
+  return bestOutcome;
 }
