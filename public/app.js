@@ -1,7 +1,7 @@
-const MIN_EDGE = 0.035;
-const MAX_PICKS = 5;
+const MIN_EDGE = 0.03; // minimalus edge kad rodytų pick
+const MAX_PICKS = 3; // TOP 3 picks
 const MIN_ODDS = 1.50;
-const MAX_ODDS = 3.50;
+const MAX_ODDS = 5.00;
 
 function showFootball() {
   document.getElementById("leagues").innerHTML = `
@@ -15,6 +15,7 @@ function showBasketball() {
   document.getElementById("leagues").innerHTML = `
     <button onclick="loadOdds('basketball_nba')">NBA</button>
     <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
+    <button onclick="loadOdds('basketball_fiba')">FIBA</button>
   `;
 }
 
@@ -32,46 +33,29 @@ async function loadOdds(sportKey) {
     const res = await fetch(`/api/odds?sport=${sportKey}`);
     const games = await res.json();
 
-    if (!Array.isArray(games)) {
-      container.innerHTML = "<p>Klaida gaunant duomenis</p>";
+    if (!Array.isArray(games) || games.length === 0) {
+      container.innerHTML = "<p>Rungtynių nėra</p>";
       return;
     }
 
-    buildInstitutionalPicks(games);
+    buildTop3Picks(games);
 
   } catch (err) {
-    container.innerHTML = "<p>Server klaida</p>";
+    container.innerHTML = "<p>Klaida kraunant duomenis</p>";
   }
 }
 
-function impliedProbability(odds) {
-  return 1 / odds;
-}
+function impliedProbability(odds) { return 1 / odds; }
+function kelly(edge, odds) { return edge / (odds - 1); }
 
-function kelly(edge, odds) {
-  return edge / (odds - 1);
-}
-
-function isToday(dateStr) {
-  const gameDate = new Date(dateStr);
-  const now = new Date();
-  return (
-    gameDate.getDate() === now.getDate() &&
-    gameDate.getMonth() === now.getMonth() &&
-    gameDate.getFullYear() === now.getFullYear()
-  );
-}
-
-function buildInstitutionalPicks(games) {
+function buildTop3Picks(games) {
   const bankroll = parseFloat(document.getElementById("bankrollInput").value) || 100;
   const container = document.getElementById("odds");
   container.innerHTML = "";
 
-  let finalPicks = [];
+  let picks = [];
 
   games.forEach(game => {
-
-    if (!isToday(game.commence_time)) return;
     if (!game.bookmakers) return;
 
     let bestWin = null;
@@ -79,20 +63,15 @@ function buildInstitutionalPicks(games) {
 
     game.bookmakers.forEach(book => {
       book.markets.forEach(market => {
-
         if (market.key !== "h2h" && market.key !== "totals") return;
 
         market.outcomes.forEach(outcome => {
-
           if (!outcome.price) return;
           if (outcome.price < MIN_ODDS || outcome.price > MAX_ODDS) return;
 
           const implied = impliedProbability(outcome.price);
-
-          // institutional model boost
-          const modelProb = implied * 1.04 + 0.01;
+          const modelProb = implied * 1.05; // stipresnis modelis
           const edge = modelProb - implied;
-
           if (edge < MIN_EDGE) return;
 
           const roi = (modelProb * outcome.price - 1) * 100;
@@ -101,9 +80,7 @@ function buildInstitutionalPicks(games) {
           const pickData = {
             match: `${game.home_team} vs ${game.away_team}`,
             type: market.key === "h2h" ? "WIN" : "OVER/UNDER",
-            pick: market.key === "totals"
-              ? `${outcome.name} ${outcome.point || ""}`
-              : outcome.name,
+            pick: market.key === "totals" ? `${outcome.name} ${outcome.point || ""}` : outcome.name,
             odds: outcome.price,
             edge,
             roi,
@@ -112,36 +89,29 @@ function buildInstitutionalPicks(games) {
 
           if (market.key === "h2h") {
             if (!bestWin || edge > bestWin.edge) bestWin = pickData;
-          }
-
-          if (market.key === "totals") {
+          } else {
             if (!bestTotal || edge > bestTotal.edge) bestTotal = pickData;
           }
-
         });
       });
     });
 
-    if (bestWin) finalPicks.push(bestWin);
-    if (bestTotal) finalPicks.push(bestTotal);
-
+    if (bestWin) picks.push(bestWin);
+    if (bestTotal) picks.push(bestTotal);
   });
 
-  finalPicks = finalPicks
-    .sort((a, b) => b.edge - a.edge)
-    .slice(0, MAX_PICKS);
+  picks = picks.sort((a,b)=>b.edge-a.edge).slice(0,MAX_PICKS);
 
-  if (finalPicks.length === 0) {
-    container.innerHTML = "<p>Šiandien stiprių institutional value nėra</p>";
+  if (picks.length === 0) {
+    container.innerHTML = "<p>Šiuo metu stiprių value picks nėra</p>";
     return;
   }
 
-  container.innerHTML = `<h2>🏛 INSTITUTIONAL TOP ${MAX_PICKS}</h2>`;
+  container.innerHTML = `<h2>🔥 TOP ${MAX_PICKS} VALUE PICKS (VISOS RUNGYTNĖS)</h2>`;
 
-  finalPicks.forEach(p => {
+  picks.forEach(p => {
     const div = document.createElement("div");
     div.className = "pick-card";
-
     div.innerHTML = `
       <h3>${p.match}</h3>
       <p><b>${p.type}</b></p>
@@ -151,7 +121,6 @@ function buildInstitutionalPicks(games) {
       <p>ROI: ${p.roi.toFixed(2)}%</p>
       <p>Stake: ${p.stake.toFixed(2)}€</p>
     `;
-
     container.appendChild(div);
   });
 }
