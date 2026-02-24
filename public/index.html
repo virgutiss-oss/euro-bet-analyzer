@@ -1,31 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="lt">
 <head>
-  <meta charset="UTF-8">
-  <title>EURO BET ANALYZER ELITE</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Euro Bet Analyzer Elite</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<h1>🏆 EURO BET ANALYZER ELITE</h1>
+  <div class="container">
 
-<div class="menu">
-  <button onclick="showFootball()">⚽ FOOTBALL</button>
-  <button onclick="showBasketball()">🏀 BASKETBALL</button>
-  <button onclick="showHockey()">🏒 HOCKEY</button>
-</div>
+    <h1>🏆 EURO BET ANALYZER ELITE</h1>
 
-<div id="leagues"></div>
+    <div class="sports-buttons">
+      <button onclick="showFootball()">⚽ FOOTBALL</button>
+      <button onclick="showBasketball()">🏀 BASKETBALL</button>
+      <button onclick="showHockey()">🏒 HOCKEY</button>
+    </div>
 
-<div class="bankroll-box">
-  Bankroll (€):
-  <input type="number" id="bankrollInput" value="100">
-</div>
+    <hr>
 
-<hr>
+    <!-- Čia kraunasi lygos -->
+    <div id="leagues"></div>
 
-<div id="odds"></div>
+    <!-- Čia kraunasi rungtynės -->
+    <div id="odds"></div>
 
-<script src="app.js"></script>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
