@@ -1,16 +1,20 @@
 const MAX_PICKS = 5;
-const MIN_EDGE = 0.025;
+const MIN_EDGE = 0.02;
 
 function showFootball() {
   document.getElementById("leagues").innerHTML = `
+    <button onclick="loadOdds('soccer_uefa_champs_league')">Champions League</button>
+    <button onclick="loadOdds('soccer_uefa_europa_league')">Europa League</button>
+    <button onclick="loadOdds('soccer_uefa_conference_league')">Conference League</button>
     <button onclick="loadOdds('soccer_epl')">Premier League</button>
-    <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
     <button onclick="loadOdds('soccer_spain_la_liga')">La Liga</button>
     <button onclick="loadOdds('soccer_italy_serie_a')">Serie A</button>
+    <button onclick="loadOdds('soccer_germany_bundesliga')">Bundesliga</button>
     <button onclick="loadOdds('soccer_france_ligue_one')">Ligue 1</button>
     <button onclick="loadOdds('soccer_netherlands_eredivisie')">Eredivisie</button>
     <button onclick="loadOdds('soccer_portugal_primeira_liga')">Portugal Liga</button>
     <button onclick="loadOdds('soccer_belgium_first_div')">Belgium League</button>
+    <button onclick="loadOdds('soccer_turkey_super_league')">Turkey Super Lig</button>
   `;
 }
 
@@ -18,13 +22,22 @@ function showBasketball() {
   document.getElementById("leagues").innerHTML = `
     <button onclick="loadOdds('basketball_nba')">NBA</button>
     <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
+    <button onclick="loadOdds('basketball_eurocup')">EuroCup</button>
     <button onclick="loadOdds('basketball_fiba')">FIBA</button>
+    <button onclick="loadOdds('basketball_spain_acb')">Spain ACB</button>
+    <button onclick="loadOdds('basketball_italy_serie_a')">Italy Serie A</button>
+    <button onclick="loadOdds('basketball_germany_bbl')">Germany BBL</button>
+    <button onclick="loadOdds('basketball_france_lnb')">France LNB</button>
   `;
 }
 
 function showHockey() {
   document.getElementById("leagues").innerHTML = `
     <button onclick="loadOdds('icehockey_nhl')">NHL</button>
+    <button onclick="loadOdds('icehockey_sweden_shl')">Sweden SHL</button>
+    <button onclick="loadOdds('icehockey_finland_liiga')">Finland Liiga</button>
+    <button onclick="loadOdds('icehockey_czech_extraliga')">Czech Extraliga</button>
+    <button onclick="loadOdds('icehockey_switzerland_nl')">Switzerland NL</button>
   `;
 }
 
@@ -114,7 +127,7 @@ function buildTop5(games) {
     return;
   }
 
-  container.innerHTML = `<h2>🔥 ELITE TOP 5 (Visos rungtynės)</h2>`;
+  container.innerHTML = `<h2>🔥 EURO ELITE TOP 5</h2>`;
 
   top5.forEach(p => {
     const div = document.createElement("div");
