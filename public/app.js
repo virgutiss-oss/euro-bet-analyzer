@@ -1,7 +1,6 @@
-const MIN_EDGE = 0.03;
-const bankroll = 100;
+const MIN_EDGE = 0.04; // griežtesnis filtras
+const MAX_PICKS = 5;
 
-// ================= MENU =================
 function showFootball() {
   document.getElementById("leagues").innerHTML = `
     <button onclick="loadOdds('soccer_epl')">Premier League</button>
@@ -14,8 +13,6 @@ function showBasketball() {
   document.getElementById("leagues").innerHTML = `
     <button onclick="loadOdds('basketball_nba')">NBA</button>
     <button onclick="loadOdds('basketball_euroleague')">EuroLeague</button>
-    <button onclick="loadOdds('basketball_fiba')">FIBA</button>
-    <button onclick="loadOdds('basketball_eurocup')">EuroCup</button>
   `;
 }
 
@@ -25,33 +22,36 @@ function showHockey() {
   `;
 }
 
-// ================= LOAD =================
 async function loadOdds(sportKey) {
   const container = document.getElementById("odds");
   container.innerHTML = "<p>Kraunama...</p>";
 
   try {
     const res = await fetch(`/api/odds?sport=${sportKey}`);
-    const data = await res.json();
+    const games = await res.json();
 
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!Array.isArray(games) || games.length === 0) {
       container.innerHTML = "<p>Rungtynių nėra</p>";
       return;
     }
 
-    buildTop3(data);
+    buildValuePicks(games);
 
   } catch (err) {
     container.innerHTML = "<p>Klaida kraunant</p>";
   }
 }
 
-// ================= CORE LOGIC =================
-function impliedProbability(odds) { return 1 / odds; }
-function calculateEdge(modelProb, impliedProb) { return modelProb - impliedProb; }
-function kelly(edge, odds) { if (odds <= 1) return 0; return edge / (odds - 1); }
+function impliedProbability(odds) {
+  return 1 / odds;
+}
 
-function buildTop3(games) {
+function kelly(edge, odds) {
+  return edge / (odds - 1);
+}
+
+function buildValuePicks(games) {
+  const bankroll = parseFloat(document.getElementById("bankrollInput").value) || 100;
   const container = document.getElementById("odds");
   container.innerHTML = "";
 
@@ -68,10 +68,12 @@ function buildTop3(games) {
           if (!outcome.price) return;
 
           const implied = impliedProbability(outcome.price);
-          const modelProb = implied * 1.05; // simple adjustment
-          const edge = calculateEdge(modelProb, implied);
+          const modelProb = implied * 1.06; // stipresnis model boost
+          const edge = modelProb - implied;
 
           if (edge < MIN_EDGE) return;
+
+          const roi = (modelProb * outcome.price - 1) * 100;
 
           picks.push({
             match: `${game.home_team} vs ${game.away_team}`,
@@ -81,6 +83,7 @@ function buildTop3(games) {
               : outcome.name,
             odds: outcome.price,
             edge,
+            roi,
             stake: bankroll * Math.max(0, kelly(edge, outcome.price)) * 0.5
           });
         });
@@ -88,15 +91,14 @@ function buildTop3(games) {
     });
   });
 
-  // tik TOP 3 pagal edge
-  picks = picks.sort((a,b)=>b.edge-a.edge).slice(0,3);
+  picks = picks.sort((a,b)=>b.edge-a.edge).slice(0,MAX_PICKS);
 
   if (picks.length === 0) {
-    container.innerHTML = "<p>Value pasirinkimų nėra</p>";
+    container.innerHTML = "<p>Nėra stiprių value pasirinkimų</p>";
     return;
   }
 
-  container.innerHTML = "<h2>🔥 TOP 3 ŠIANDIEN</h2>";
+  container.innerHTML = `<h2>💎 TOP ${MAX_PICKS} VALUE PICKS</h2>`;
 
   picks.forEach(p => {
     const div = document.createElement("div");
@@ -108,6 +110,7 @@ function buildTop3(games) {
       <p>Pick: ${p.pick}</p>
       <p>Odds: ${p.odds}</p>
       <p>Edge: ${(p.edge*100).toFixed(2)}%</p>
+      <p>ROI: ${p.roi.toFixed(2)}%</p>
       <p>Stake: ${p.stake.toFixed(2)}€</p>
     `;
 
