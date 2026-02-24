@@ -1,13 +1,13 @@
 body {
   margin: 0;
-  background: #0e0e0e;
-  color: white;
+  background: #0f1115;
+  color: #f1f1f1;
   font-family: Arial, sans-serif;
 }
 
 .container {
   padding: 20px;
-  max-width: 1000px;
+  max-width: 1100px;
   margin: auto;
 }
 
@@ -16,35 +16,71 @@ h1 {
   margin-bottom: 20px;
 }
 
-.sports-buttons button,
-#leagues button {
-  padding: 16px 24px;
-  margin: 8px;
-  font-size: 18px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  background: #1f1f1f;
-  color: white;
-  min-width: 180px;
+.top-controls {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
-.sports-buttons button:hover,
-#leagues button:hover {
-  background: #333;
+.sports-buttons button {
+  padding: 14px 22px;
+  margin: 6px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #1c1f26;
+  color: white;
+}
+
+.sports-buttons button:hover {
+  background: #2b2f3a;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filters input {
+  width: 60px;
+  padding: 6px;
+  border-radius: 6px;
+  border: none;
+  text-align: center;
+}
+
+#leagues button {
+  padding: 12px 18px;
+  margin: 6px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #22252d;
+  color: white;
 }
 
 .match-card {
-  background: #1a1a1a;
-  padding: 18px;
+  background: #1a1d24;
+  padding: 16px;
   margin: 12px 0;
   border-radius: 10px;
 }
 
 .top-card {
-  background: #1a1a1a;
+  background: #16261c;
   padding: 18px;
   margin: 12px 0;
   border-radius: 10px;
-  border: 3px solid red;
+  border: 3px solid #00ff88;
+}
+
+.pick {
+  margin-top: 6px;
+  padding: 6px;
+  background: #222;
+  border-radius: 6px;
 }
