@@ -48,8 +48,6 @@ async function loadOdds(sportKey) {
 
   games.forEach(game => {
 
-    if (!game.bookmakers || game.bookmakers.length < minBooks) return;
-
     const div = document.createElement("div");
     div.className = "match-card";
 
@@ -58,7 +56,8 @@ async function loadOdds(sportKey) {
       <p>📅 ${new Date(game.commence_time).toLocaleString()}</p>
     `;
 
-    const sharpPick = findSharpPick(game);
+    // Sharp pick logika TOP 3
+    const sharpPick = findSharpPick(game, minBooks);
 
     if (sharpPick) {
       div.innerHTML += `
@@ -67,10 +66,7 @@ async function loadOdds(sportKey) {
           (${sharpPick.odds}) | EV ${(sharpPick.ev*100).toFixed(2)}%
         </div>
       `;
-
-      if (isToday(game.commence_time)) {
-        todaySharp.push(sharpPick);
-      }
+      if (isToday(game.commence_time)) todaySharp.push(sharpPick);
     }
 
     container.appendChild(div);
@@ -81,7 +77,9 @@ async function loadOdds(sportKey) {
 
 // ===== SHARP PICK LOGIC =====
 
-function findSharpPick(game) {
+function findSharpPick(game, minBooks) {
+
+  if (!game.bookmakers || game.bookmakers.length < minBooks) return null;
 
   let outcomesMap = {};
 
