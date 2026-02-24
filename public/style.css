@@ -7,24 +7,26 @@ body {
 
 .container {
   padding: 20px;
-  max-width: 900px;
+  max-width: 1000px;
   margin: auto;
 }
 
 h1 {
   text-align: center;
+  margin-bottom: 20px;
 }
 
 .sports-buttons button,
 #leagues button {
-  padding: 14px 20px;
+  padding: 16px 24px;
   margin: 8px;
-  font-size: 16px;
-  border-radius: 8px;
+  font-size: 18px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   background: #1f1f1f;
   color: white;
+  min-width: 180px;
 }
 
 .sports-buttons button:hover,
@@ -34,7 +36,15 @@ h1 {
 
 .match-card {
   background: #1a1a1a;
-  padding: 15px;
-  margin: 10px 0;
-  border-radius: 8px;
+  padding: 18px;
+  margin: 12px 0;
+  border-radius: 10px;
+}
+
+.top-card {
+  background: #1a1a1a;
+  padding: 18px;
+  margin: 12px 0;
+  border-radius: 10px;
+  border: 3px solid red;
 }
