@@ -3,24 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Euro Bet Analyzer Elite</title>
+  <title>Euro Bet Analyzer PRO</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <div class="container">
 
-    <h1>🏆 EURO BET ANALYZER ELITE v2</h1>
+    <h1>⚡ EURO BET ANALYZER PRO</h1>
 
-    <div class="sports-buttons">
-      <button onclick="showFootball()">⚽ FOOTBALL</button>
-      <button onclick="showBasketball()">🏀 BASKETBALL</button>
-      <button onclick="showHockey()">🏒 HOCKEY</button>
+    <div class="top-controls">
+      <div class="sports-buttons">
+        <button onclick="showFootball()">⚽ Football</button>
+        <button onclick="showBasketball()">🏀 Basketball</button>
+        <button onclick="showHockey()">🏒 Hockey</button>
+      </div>
+
+      <div class="filters">
+        <label>Min Bookmakers:</label>
+        <input type="number" id="minBooks" value="3" min="1" max="20">
+      </div>
     </div>
 
-    <hr>
-
     <div id="leagues"></div>
+
+    <div id="top3"></div>
+
     <div id="odds"></div>
 
   </div>
