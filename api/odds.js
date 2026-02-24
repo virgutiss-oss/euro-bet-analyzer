@@ -13,29 +13,15 @@ export default async function handler(req, res) {
     const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=us,eu&markets=h2h,totals`;
 
     const response = await fetch(url);
+    const data = await response.json();
 
-    const text = await response.text();
-
-    try {
-      const data = JSON.parse(text);
-
-      if (!response.ok) {
-        return res.status(response.status).json(data);
-      }
-
-      return res.status(200).json(data);
-
-    } catch (jsonError) {
-      return res.status(500).json({
-        error: "Invalid JSON from Odds API",
-        raw: text
-      });
+    if (!response.ok) {
+      return res.status(response.status).json(data);
     }
 
+    res.status(200).json(data);
+
   } catch (error) {
-    return res.status(500).json({
-      error: "Server crash",
-      details: error.message
-    });
+    res.status(500).json({ error: "Server error", details: error.message });
   }
 }
