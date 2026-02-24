@@ -1,30 +1,59 @@
 body {
-  font-family: Arial;
-  background: #111;
+  font-family: Arial, sans-serif;
+  background: #0f0f0f;
   color: white;
   padding: 20px;
 }
 
 h1 {
-  font-size: 28px;
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.menu {
+  margin-bottom: 20px;
 }
 
 button {
-  padding: 10px 15px;
-  margin: 5px;
+  padding: 18px 28px;
+  margin: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 10px;
+  border: none;
   cursor: pointer;
-  background: #222;
+  background: #1f1f1f;
   color: white;
-  border: 1px solid #555;
+  transition: 0.2s;
 }
 
 button:hover {
-  background: #444;
+  background: #333;
+  transform: scale(1.05);
+}
+
+.bankroll-box {
+  margin: 15px 0;
+  font-size: 18px;
+}
+
+input {
+  padding: 10px;
+  font-size: 18px;
+  width: 120px;
+  margin-left: 10px;
 }
 
 .pick-card {
-  background: #1e1e1e;
-  padding: 15px;
-  margin: 15px 0;
+  background: #1c1c1c;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 12px;
   border: 1px solid #333;
+  box-shadow: 0 0 10px rgba(0,255,100,0.1);
+}
+
+.pick-card h3 {
+  margin-top: 0;
+  font-size: 22px;
 }
