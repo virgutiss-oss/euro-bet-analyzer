@@ -1,60 +1,90 @@
-body {
-  background: #0e0e0e;
-  color: white;
-  font-family: Arial;
-  padding: 15px;
+body{
+  background:#0f0f0f;
+  color:white;
+  font-family:Arial;
+  padding:15px;
 }
 
-h1 {
-  color: #00ff88;
-  font-size: 20px;
+h1{
+  color:#00ff88;
+  font-size:20px;
 }
 
-.filters {
-  background: #1b1b1b;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.sports{
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
 }
 
-select, input {
-  padding: 6px;
-  font-size: 13px;
-  border-radius: 6px;
-  border: none;
+.sports button{
+  flex:1;
+  padding:8px;
+  font-size:13px;
+  border:none;
+  border-radius:8px;
+  background:#1e1e1e;
+  color:white;
 }
 
-button {
-  padding: 6px 12px;
-  font-size: 13px;
-  background: #00ff88;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+#leagues{
+  margin-bottom:10px;
 }
 
-.game {
-  background: #1a1a1a;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  font-size: 12px;
+#leagues button{
+  margin:4px;
+  padding:6px 8px;
+  font-size:12px;
+  border:none;
+  border-radius:6px;
+  background:#2a2a2a;
+  color:white;
 }
 
-.pick {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #ccc;
+.filters{
+  background:#1b1b1b;
+  padding:10px;
+  border-radius:8px;
+  font-size:12px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:15px;
 }
 
-.top-card {
-  background: #112d1f;
-  border: 2px solid #00ff88;
-  padding: 8px;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  font-size: 12px;
+input{
+  width:60px;
+  padding:4px;
+  font-size:12px;
+  border-radius:6px;
+  border:none;
+}
+
+button{
+  padding:6px 10px;
+  font-size:12px;
+  border:none;
+  border-radius:6px;
+  background:#00ff88;
+}
+
+.game{
+  background:#1a1a1a;
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:8px;
+  font-size:12px;
+}
+
+.pick{
+  margin-top:4px;
+  color:#ccc;
+}
+
+.top-card{
+  background:#113322;
+  border:2px solid #00ff88;
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:8px;
+  font-size:12px;
 }
