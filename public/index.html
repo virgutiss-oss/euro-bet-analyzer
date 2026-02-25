@@ -2,15 +2,16 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sharp Betting Analyzer</title>
+<title>Sharp Betting Analyzer PRO</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>🔥 Sharp Betting Analyzer</h1>
+<h1>🔥 Sharp Betting Analyzer PRO</h1>
 
-<div class="controls">
-<select id="sportSelect">
+<div class="filters">
+
+<select id="sport">
   <option value="basketball_nba">NBA</option>
   <option value="basketball_euroleague">EuroLeague</option>
   <option value="basketball_eurocup">EuroCup</option>
@@ -20,16 +21,26 @@
   <option value="icehockey_nhl">NHL</option>
 </select>
 
-<label>Min Bookmakers:</label>
+<select id="marketFilter">
+  <option value="both">WIN + TOTAL</option>
+  <option value="h2h">WIN only</option>
+  <option value="totals">TOTAL only</option>
+</select>
+
+<label>Min EV %</label>
+<input type="number" id="minEv" value="3" min="1" max="50">
+
+<label>Min Books</label>
 <input type="number" id="minBooks" value="3" min="1" max="10">
 
-<button onclick="loadOdds()">Load Games</button>
+<button onclick="loadOdds()">Load</button>
+
 </div>
 
-<h2>🟢 TOP 3 TODAY</h2>
+<h2>🟢 TOP 3 VALUE TODAY</h2>
 <div id="top3"></div>
 
-<h2>📅 All Matches</h2>
+<h2>📅 All Sharp Picks</h2>
 <div id="games"></div>
 
 <script src="app.js"></script>
