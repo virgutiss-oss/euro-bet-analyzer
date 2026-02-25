@@ -1,4 +1,4 @@
-const API_KEY = "PASTE_YOUR_API_KEY";
+const API_KEY = "b2e1590b865bd748e670388b64aad940";
 const BASE_URL = "https://api.the-odds-api.com/v4/sports/";
 
 let todayValuePicks = [];
