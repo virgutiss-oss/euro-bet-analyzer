@@ -3,46 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sharp Betting Analyzer</title>
+<title>Sharp Analyzer PRO</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <h1>⚡ Sharp Betting Analyzer</h1>
 
-<div class="mode-switch">
-  <button id="safeBtn" onclick="setMode('safe')" class="active">🛡 Safe Mode</button>
-  <button id="aggBtn" onclick="setMode('aggressive')">🔥 Aggressive</button>
+<div class="sports">
+  <button onclick="loadSport('soccer')">⚽ Futbolas</button>
+  <button onclick="loadSport('basketball')">🏀 Krepšinis</button>
+  <button onclick="loadSport('icehockey')">🏒 Ledo ritulys</button>
 </div>
 
-<div class="filters">
+<h2 id="sportTitle"></h2>
 
-<select id="sport">
-  <option value="basketball_nba">NBA</option>
-  <option value="basketball_euroleague">EuroLeague</option>
-  <option value="soccer_epl">EPL</option>
-  <option value="soccer_spain_la_liga">La Liga</option>
-  <option value="soccer_uefa_champs_league">Champions League</option>
-  <option value="icehockey_nhl">NHL</option>
-</select>
-
-<label>Min EV %</label>
-<input type="number" id="minEv" value="2">
-
-<label>Min Bookmakers</label>
-<input type="number" id="minBooks" value="3">
-
-<label>Min Confidence %</label>
-<input type="number" id="minConf" value="65">
-
-<button onclick="loadOdds()">Load Picks</button>
-
-</div>
-
-<h2>⭐ TOP 3 TODAY</h2>
 <div id="top3"></div>
-
-<h2>📊 Sharp Picks</h2>
 <div id="games"></div>
 
 <script src="app.js"></script>
