@@ -1,4 +1,6 @@
 const MAX_TOP = 3;
+const MIN_BOOKS = 3;
+const MIN_EDGE = 0.03;
 
 // ===== SPORTS =====
 
@@ -26,7 +28,7 @@ function showHockey() {
   `;
 }
 
-// ===== LOAD ODDS =====
+// ===== LOAD =====
 
 async function loadOdds(sportKey) {
 
@@ -41,7 +43,7 @@ async function loadOdds(sportKey) {
 
   container.innerHTML = "";
 
-  let todayPicks = [];
+  let todayValuePicks = [];
 
   games.forEach(game => {
 
@@ -50,43 +52,45 @@ async function loadOdds(sportKey) {
 
     div.innerHTML = `
       <h3>${game.home_team} vs ${game.away_team}</h3>
-      <p>📅 ${new Date(game.commence_time).toLocaleString()}</p>
+      <p style="font-size:12px;">${new Date(game.commence_time).toLocaleString()}</p>
     `;
 
-    const bestWin = getBestMarket(game, "h2h");
-    const bestTotal = getBestMarket(game, "totals");
+    const markets = ["h2h", "totals"];
 
-    if (bestWin) {
-      div.innerHTML += `
-        <div class="pick">
-          <b>WIN:</b> ${bestWin.name} @ ${bestWin.price}
-        </div>
-      `;
-      if (isToday(game.commence_time)) todayPicks.push(buildTopPick(game, bestWin, "WIN"));
-    }
+    markets.forEach(marketKey => {
 
-    if (bestTotal) {
-      div.innerHTML += `
-        <div class="pick">
-          <b>O/U:</b> ${bestTotal.name} ${bestTotal.point || ""} @ ${bestTotal.price}
-        </div>
-      `;
-      if (isToday(game.commence_time)) todayPicks.push(buildTopPick(game, bestTotal, "OVER/UNDER"));
-    }
+      const valuePick = calculateTrueEV(game, marketKey);
+
+      if (valuePick) {
+
+        div.innerHTML += `
+          <div class="pick">
+            <b>${valuePick.type}</b> – ${valuePick.pick}
+            @ ${valuePick.odds}
+            | EV ${(valuePick.ev*100).toFixed(2)}%
+          </div>
+        `;
+
+        if (isToday(game.commence_time)) {
+          todayValuePicks.push(valuePick);
+        }
+      }
+
+    });
 
     container.appendChild(div);
   });
 
-  showTop3(todayPicks);
+  showTop3(todayValuePicks);
 }
 
-// ===== BEST MARKET (be sharp filtro) =====
+// ===== TRUE EV MODEL =====
 
-function getBestMarket(game, marketKey) {
+function calculateTrueEV(game, marketKey) {
 
-  if (!game.bookmakers) return null;
+  if (!game.bookmakers || game.bookmakers.length < MIN_BOOKS) return null;
 
-  let best = null;
+  let outcomesData = {};
 
   game.bookmakers.forEach(book => {
     book.markets.forEach(market => {
@@ -97,35 +101,55 @@ function getBestMarket(game, marketKey) {
 
         if (!outcome.price) return;
 
-        if (!best || outcome.price > best.price) {
-          best = outcome;
+        const key = outcome.name + "_" + (outcome.point || "");
+
+        if (!outcomesData[key]) {
+          outcomesData[key] = {
+            prices: [],
+            name: outcome.name,
+            point: outcome.point
+          };
         }
 
+        outcomesData[key].prices.push(outcome.price);
       });
 
     });
   });
 
-  return best;
+  let bestValue = null;
+
+  Object.values(outcomesData).forEach(o => {
+
+    if (o.prices.length < MIN_BOOKS) return;
+
+    const avgOdds = o.prices.reduce((a,b)=>a+b,0) / o.prices.length;
+    const bestOdds = Math.max(...o.prices);
+
+    const modelProb = 1 / avgOdds;
+    const ev = (modelProb * bestOdds) - 1;
+
+    if (ev > MIN_EDGE) {
+
+      if (!bestValue || ev > bestValue.ev) {
+        bestValue = {
+          match: `${game.home_team} vs ${game.away_team}`,
+          date: game.commence_time,
+          type: marketKey === "h2h" ? "WIN" : "OVER/UNDER",
+          pick: o.name + (o.point ? " " + o.point : ""),
+          odds: bestOdds.toFixed(2),
+          ev
+        };
+      }
+
+    }
+
+  });
+
+  return bestValue;
 }
 
-// ===== TOP 3 =====
-
-function buildTopPick(game, outcome, type) {
-
-  const implied = 1 / outcome.price;
-  const ev = (implied * outcome.price) - 1;
-
-  return {
-    match: `${game.home_team} vs ${game.away_team}`,
-    date: game.commence_time,
-    type,
-    pick: outcome.name,
-    point: outcome.point,
-    odds: outcome.price,
-    ev
-  };
-}
+// ===== TOP 3 BY VALUE =====
 
 function showTop3(picks) {
 
@@ -134,18 +158,18 @@ function showTop3(picks) {
   const container = document.getElementById("top3");
 
   const top = picks
-    .sort((a,b)=>b.odds-a.odds)
+    .sort((a,b)=>b.ev-a.ev)
     .slice(0, MAX_TOP);
 
-  container.innerHTML = `<h2>🔥 TODAY TOP 3</h2>`;
+  container.innerHTML = `<h2>🔥 TODAY BEST VALUE TOP 3</h2>`;
 
   top.forEach(p => {
     container.innerHTML += `
       <div class="top-card">
         <h3>${p.match}</h3>
-        <p>📅 ${new Date(p.date).toLocaleString()}</p>
-        <p><b>${p.type}</b> – ${p.pick} ${p.point || ""}</p>
+        <p>${p.type} – ${p.pick}</p>
         <p>Odds: ${p.odds}</p>
+        <p>EV: ${(p.ev*100).toFixed(2)}%</p>
       </div>
     `;
   });
