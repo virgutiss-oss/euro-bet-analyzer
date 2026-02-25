@@ -1,9 +1,48 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: white;
+  padding: 20px;
+}
+
+h1 {
+  color: #00ff88;
+}
+
+.controls {
+  margin-bottom: 20px;
+}
+
+select, input, button {
+  padding: 6px;
+  margin-right: 10px;
+  font-size: 14px;
+}
+
+button {
+  background: #00ff88;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#games {
+  margin-top: 20px;
+}
+
+.game {
+  background: #1c1c1c;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
 .pick {
   margin-top: 5px;
   padding: 5px;
   background: #222;
   border-radius: 6px;
-  font-size: 12px;   /* dar mažesnis */
+  font-size: 12px;
 }
 
 .top-card {
@@ -12,7 +51,7 @@
   margin: 10px 0;
   border-radius: 8px;
   border: 2px solid #00ff88;
-  font-size: 12px;   /* mažesnis TOP3 */
+  font-size: 12px;
 }
 
 .top-card h3 {
