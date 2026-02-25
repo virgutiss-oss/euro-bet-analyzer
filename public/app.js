@@ -1,70 +1,112 @@
-const API_KEY = "b2e1590b865bd748e670388b64aad940";
-const BASE_URL = "https://api.the-odds-api.com/v4/sports/";
-
-let todayValuePicks = [];
-let MIN_BOOKS = 3;
-const MIN_EDGE = 0.02;
+const API_KEY = "PASTE_YOUR_API_KEY";
+const BASE = "https://api.the-odds-api.com/v4/sports/";
 
 async function loadOdds() {
 
-  const sport = document.getElementById("sportSelect").value;
-  MIN_BOOKS = parseInt(document.getElementById("minBooks").value);
+  const sport = document.getElementById("sport").value;
+  const marketFilter = document.getElementById("marketFilter").value;
+  const minEv = parseFloat(document.getElementById("minEv").value) / 100;
+  const minBooks = parseInt(document.getElementById("minBooks").value);
 
-  todayValuePicks = [];
+  const url = `${BASE}${sport}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`;
 
-  const url = `${BASE_URL}${sport}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`;
+  const res = await fetch(url);
+  const data = await res.json();
 
-  const response = await fetch(url);
-  const data = await response.json();
+  const gamesDiv = document.getElementById("games");
+  const topDiv = document.getElementById("top3");
 
-  const gamesContainer = document.getElementById("games");
-  gamesContainer.innerHTML = "";
+  gamesDiv.innerHTML = "";
+  topDiv.innerHTML = "";
+
+  let allToday = [];
 
   data.forEach(game => {
 
-    const div = document.createElement("div");
-    div.className = "game";
+    const bestPick = getBestSharpPick(game, marketFilter, minEv, minBooks);
+
+    if (!bestPick) return;
 
     const date = new Date(game.commence_time).toLocaleString();
 
-    div.innerHTML = `<h3>${game.home_team} vs ${game.away_team}</h3>
-                     <p>${date}</p>`;
+    gamesDiv.innerHTML += `
+      <div class="game">
+        <b>${game.home_team} vs ${game.away_team}</b><br>
+        ${date}
+        <div class="pick">
+          ${bestPick.type} – ${bestPick.pick}${bestPick.line ? " " + bestPick.line : ""}
+          @ ${bestPick.odds}
+          | EV ${(bestPick.ev*100).toFixed(2)}%
+        </div>
+      </div>
+    `;
 
-    const h2hPick = calculateTrueEV(game, "h2h");
-    const totalPick = calculateTrueEV(game, "totals");
+    if (isToday(game.commence_time)) {
+      allToday.push(bestPick);
+    }
 
-    [h2hPick, totalPick].forEach(pick => {
+  });
 
-      if (pick) {
+  const top3 = allToday.sort((a,b)=>b.ev-a.ev).slice(0,3);
 
-        let lineText = pick.line ? ` ${pick.line}` : "";
+  top3.forEach(p => {
+    topDiv.innerHTML += `
+      <div class="top-card">
+        <b>${p.match}</b><br>
+        ${p.type} – ${p.pick}${p.line ? " " + p.line : ""}<br>
+        Odds ${p.odds} | EV ${(p.ev*100).toFixed(2)}%
+      </div>
+    `;
+  });
+}
 
-        div.innerHTML += `
-          <div class="pick">
-            <b>${pick.type}</b> – ${pick.pick}${lineText}
-            @ ${pick.odds}
-            | EV ${(pick.ev*100).toFixed(2)}%
-          </div>
-        `;
+function getBestSharpPick(game, marketFilter, minEv, minBooks) {
 
-        if (isToday(game.commence_time)) {
-          todayValuePicks.push(pick);
+  if (!game.bookmakers || game.bookmakers.length < minBooks) return null;
+
+  let best = null;
+
+  game.bookmakers.forEach(book => {
+
+    book.markets.forEach(market => {
+
+      if (marketFilter !== "both" && market.key !== marketFilter) return;
+
+      market.outcomes.forEach(outcome => {
+
+        if (!outcome.price) return;
+
+        const avgOdds = getAverageOdds(game, market.key, outcome.name, outcome.point);
+        const implied = 1 / avgOdds;
+        const ev = (implied * outcome.price) - 1;
+
+        if (ev > minEv) {
+
+          if (!best || ev > best.ev) {
+            best = {
+              match: `${game.home_team} vs ${game.away_team}`,
+              type: market.key === "h2h" ? "WIN" : "TOTAL",
+              pick: outcome.name,
+              line: outcome.point || null,
+              odds: outcome.price.toFixed(2),
+              ev
+            };
+          }
+
         }
-      }
+
+      });
 
     });
 
-    gamesContainer.appendChild(div);
   });
 
-  showTop3();
+  return best;
 }
 
-function calculateTrueEV(game, marketKey) {
+function getAverageOdds(game, marketKey, name, point) {
 
-  if (!game.bookmakers || game.bookmakers.length < MIN_BOOKS) return null;
-
-  let marketMap = {};
+  let prices = [];
 
   game.bookmakers.forEach(book => {
 
@@ -73,86 +115,20 @@ function calculateTrueEV(game, marketKey) {
       if (market.key !== marketKey) return;
 
       market.outcomes.forEach(outcome => {
-
-        if (!outcome.price) return;
-
-        const id = outcome.name + "_" + (outcome.point || "");
-
-        if (!marketMap[id]) {
-          marketMap[id] = {
-            name: outcome.name,
-            point: outcome.point,
-            prices: []
-          };
+        if (outcome.name === name && outcome.point === point) {
+          prices.push(outcome.price);
         }
-
-        marketMap[id].prices.push(outcome.price);
       });
 
     });
 
   });
 
-  let bestPick = null;
-
-  Object.values(marketMap).forEach(o => {
-
-    if (o.prices.length < MIN_BOOKS) return;
-
-    const avgOdds = o.prices.reduce((a,b)=>a+b,0) / o.prices.length;
-    const impliedProb = 1 / avgOdds;
-    const bestOdds = Math.max(...o.prices);
-
-    const ev = (impliedProb * bestOdds) - 1;
-
-    if (ev > MIN_EDGE) {
-
-      if (!bestPick || ev > bestPick.ev) {
-
-        bestPick = {
-          match: `${game.home_team} vs ${game.away_team}`,
-          date: game.commence_time,
-          type: marketKey === "h2h" ? "WIN" : "TOTAL",
-          pick: o.name,
-          line: o.point || null,
-          odds: bestOdds.toFixed(2),
-          ev
-        };
-      }
-
-    }
-
-  });
-
-  return bestPick;
+  return prices.reduce((a,b)=>a+b,0) / prices.length;
 }
 
-function showTop3() {
-
-  const container = document.getElementById("top3");
-  container.innerHTML = "";
-
-  const top = todayValuePicks
-    .sort((a,b)=>b.ev-a.ev)
-    .slice(0,3);
-
-  top.forEach(p => {
-
-    let lineText = p.line ? ` ${p.line}` : "";
-
-    container.innerHTML += `
-      <div class="top-card">
-        <h3>${p.match}</h3>
-        <p>${p.type} – ${p.pick}${lineText}</p>
-        <p>Odds: ${p.odds}</p>
-        <p>EV: ${(p.ev*100).toFixed(2)}%</p>
-      </div>
-    `;
-  });
-}
-
-function isToday(dateString) {
-  const today = new Date();
-  const date = new Date(dateString);
-  return today.toDateString() === date.toDateString();
+function isToday(dateStr) {
+  const d = new Date(dateStr);
+  const t = new Date();
+  return d.toDateString() === t.toDateString();
 }
