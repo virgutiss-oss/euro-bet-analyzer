@@ -1,134 +1,164 @@
 const API_KEY = "b2e1590b865bd748e670388b64aad940";
 const BASE = "https://api.the-odds-api.com/v4/sports/";
 
-async function loadOdds() {
+let selectedLeague = null;
 
-  const sport = document.getElementById("sport").value;
-  const marketFilter = document.getElementById("marketFilter").value;
-  const minEv = parseFloat(document.getElementById("minEv").value) / 100;
+function selectSport(sport){
+
+  const leaguesDiv = document.getElementById("leagues");
+
+  if(sport==="soccer"){
+    leaguesDiv.innerHTML=`
+      <button onclick="setLeague('soccer_epl')">EPL</button>
+      <button onclick="setLeague('soccer_spain_la_liga')">La Liga</button>
+      <button onclick="setLeague('soccer_uefa_champs_league')">Champions League</button>
+    `;
+  }
+
+  if(sport==="basketball"){
+    leaguesDiv.innerHTML=`
+      <button onclick="setLeague('basketball_nba')">NBA</button>
+      <button onclick="setLeague('basketball_euroleague')">EuroLeague</button>
+    `;
+  }
+
+  if(sport==="icehockey"){
+    leaguesDiv.innerHTML=`
+      <button onclick="setLeague('icehockey_nhl')">NHL</button>
+    `;
+  }
+
+}
+
+function setLeague(key){
+  selectedLeague = key;
+}
+
+async function loadOdds(){
+
+  if(!selectedLeague){
+    alert("Pasirink lygą");
+    return;
+  }
+
+  const minEv = parseFloat(document.getElementById("minEv").value)/100;
   const minBooks = parseInt(document.getElementById("minBooks").value);
+  const maxOdds = parseFloat(document.getElementById("maxOdds").value);
+  const minConf = parseFloat(document.getElementById("minConf").value)/100;
 
-  const url = `${BASE}${sport}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`;
+  const url = `${BASE}${selectedLeague}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`;
 
   const res = await fetch(url);
   const data = await res.json();
 
-  const gamesDiv = document.getElementById("games");
-  const topDiv = document.getElementById("top3");
+  let today=[];
+  const gamesDiv=document.getElementById("games");
+  const topDiv=document.getElementById("top3");
 
-  gamesDiv.innerHTML = "";
-  topDiv.innerHTML = "";
+  gamesDiv.innerHTML="";
+  topDiv.innerHTML="";
 
-  let allToday = [];
+  data.forEach(game=>{
 
-  data.forEach(game => {
+    const best=getBestPick(game,minEv,minBooks,maxOdds,minConf);
+    if(!best) return;
 
-    const bestPick = getBestSharpPick(game, marketFilter, minEv, minBooks);
-
-    if (!bestPick) return;
-
-    const date = new Date(game.commence_time).toLocaleString();
-
-    gamesDiv.innerHTML += `
+    gamesDiv.innerHTML+=`
       <div class="game">
-        <b>${game.home_team} vs ${game.away_team}</b><br>
-        ${date}
+        <b>${game.home_team} vs ${game.away_team}</b>
         <div class="pick">
-          ${bestPick.type} – ${bestPick.pick}${bestPick.line ? " " + bestPick.line : ""}
-          @ ${bestPick.odds}
-          | EV ${(bestPick.ev*100).toFixed(2)}%
+          ${best.type} – ${best.pick}${best.line?" "+best.line:""}
+          @ ${best.odds}
+          | EV ${(best.ev*100).toFixed(2)}%
+          | Conf ${(best.conf*100).toFixed(0)}%
         </div>
       </div>
     `;
 
-    if (isToday(game.commence_time)) {
-      allToday.push(bestPick);
-    }
+    if(isToday(game.commence_time)) today.push(best);
 
   });
 
-  const top3 = allToday.sort((a,b)=>b.ev-a.ev).slice(0,3);
-
-  top3.forEach(p => {
-    topDiv.innerHTML += `
+  today.sort((a,b)=>b.ev-a.ev).slice(0,3).forEach(p=>{
+    topDiv.innerHTML+=`
       <div class="top-card">
         <b>${p.match}</b><br>
-        ${p.type} – ${p.pick}${p.line ? " " + p.line : ""}<br>
-        Odds ${p.odds} | EV ${(p.ev*100).toFixed(2)}%
+        ${p.type} – ${p.pick}${p.line?" "+p.line:""}<br>
+        Odds ${p.odds} | EV ${(p.ev*100).toFixed(2)}% | Conf ${(p.conf*100).toFixed(0)}%
       </div>
     `;
   });
+
 }
 
-function getBestSharpPick(game, marketFilter, minEv, minBooks) {
+function getBestPick(game,minEv,minBooks,maxOdds,minConf){
 
-  if (!game.bookmakers || game.bookmakers.length < minBooks) return null;
+  if(!game.bookmakers || game.bookmakers.length<minBooks) return null;
 
-  let best = null;
+  let best=null;
 
-  game.bookmakers.forEach(book => {
+  game.bookmakers.forEach(book=>{
+    book.markets.forEach(market=>{
+      market.outcomes.forEach(outcome=>{
 
-    book.markets.forEach(market => {
+        if(!outcome.price || outcome.price>maxOdds) return;
 
-      if (marketFilter !== "both" && market.key !== marketFilter) return;
+        const prices=collectPrices(game,market.key,outcome.name,outcome.point);
+        if(prices.length<minBooks) return;
 
-      market.outcomes.forEach(outcome => {
+        const fairProb=removeMargin(prices);
+        const ev=(fairProb*outcome.price)-1;
 
-        if (!outcome.price) return;
+        const variance=getVariance(prices);
+        const conf=(1-variance)*fairProb;
 
-        const avgOdds = getAverageOdds(game, market.key, outcome.name, outcome.point);
-        const implied = 1 / avgOdds;
-        const ev = (implied * outcome.price) - 1;
-
-        if (ev > minEv) {
-
-          if (!best || ev > best.ev) {
-            best = {
-              match: `${game.home_team} vs ${game.away_team}`,
-              type: market.key === "h2h" ? "WIN" : "TOTAL",
-              pick: outcome.name,
-              line: outcome.point || null,
-              odds: outcome.price.toFixed(2),
-              ev
+        if(ev>minEv && conf>minConf){
+          if(!best || ev>best.ev){
+            best={
+              match:`${game.home_team} vs ${game.away_team}`,
+              type:market.key==="h2h"?"WIN":"TOTAL",
+              pick:outcome.name,
+              line:outcome.point||null,
+              odds:outcome.price.toFixed(2),
+              ev,
+              conf
             };
           }
-
         }
 
       });
-
     });
-
   });
 
   return best;
 }
 
-function getAverageOdds(game, marketKey, name, point) {
-
-  let prices = [];
-
-  game.bookmakers.forEach(book => {
-
-    book.markets.forEach(market => {
-
-      if (market.key !== marketKey) return;
-
-      market.outcomes.forEach(outcome => {
-        if (outcome.name === name && outcome.point === point) {
-          prices.push(outcome.price);
-        }
+function collectPrices(game,key,name,point){
+  let arr=[];
+  game.bookmakers.forEach(b=>{
+    b.markets.forEach(m=>{
+      if(m.key!==key) return;
+      m.outcomes.forEach(o=>{
+        if(o.name===name && o.point===point) arr.push(o.price);
       });
-
     });
-
   });
-
-  return prices.reduce((a,b)=>a+b,0) / prices.length;
+  return arr;
 }
 
-function isToday(dateStr) {
-  const d = new Date(dateStr);
-  const t = new Date();
-  return d.toDateString() === t.toDateString();
+function removeMargin(prices){
+  const implied=prices.map(p=>1/p);
+  const sum=implied.reduce((a,b)=>a+b,0);
+  return implied[0]/sum;
+}
+
+function getVariance(arr){
+  const avg=arr.reduce((a,b)=>a+b,0)/arr.length;
+  return Math.sqrt(arr.map(x=>(x-avg)**2).reduce((a,b)=>a+b)/arr.length);
+}
+
+function isToday(dateStr){
+  const d=new Date(dateStr);
+  const t=new Date();
+  return d.toDateString()===t.toDateString();
 }
