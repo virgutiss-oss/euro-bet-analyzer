@@ -1,90 +1,84 @@
 body{
-  background:#0f0f0f;
+  background:linear-gradient(180deg,#0f0f0f,#1c1c1c);
   color:white;
-  font-family:Arial;
+  font-family:-apple-system,BlinkMacSystemFont;
   padding:15px;
 }
 
 h1{
-  color:#00ff88;
-  font-size:20px;
+  font-size:22px;
+  text-align:center;
+  margin-bottom:15px;
+  background:linear-gradient(90deg,#00ff88,#00c3ff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
 }
 
-.sports{
+.mode-switch{
   display:flex;
-  gap:8px;
-  margin-bottom:10px;
+  gap:10px;
+  margin-bottom:12px;
 }
 
-.sports button{
+.mode-switch button{
   flex:1;
-  padding:8px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
   font-size:13px;
-  border:none;
-  border-radius:8px;
-  background:#1e1e1e;
-  color:white;
-}
-
-#leagues{
-  margin-bottom:10px;
-}
-
-#leagues button{
-  margin:4px;
-  padding:6px 8px;
-  font-size:12px;
-  border:none;
-  border-radius:6px;
   background:#2a2a2a;
   color:white;
 }
 
-.filters{
-  background:#1b1b1b;
-  padding:10px;
-  border-radius:8px;
-  font-size:12px;
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  margin-bottom:15px;
+.mode-switch .active{
+  background:linear-gradient(90deg,#00ff88,#00c3ff);
+  color:black;
 }
 
-input{
-  width:60px;
-  padding:4px;
-  font-size:12px;
-  border-radius:6px;
+.filters{
+  background:#1a1a1a;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:15px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+select,input{
+  padding:8px;
+  border-radius:8px;
   border:none;
+  font-size:13px;
 }
 
 button{
-  padding:6px 10px;
-  font-size:12px;
+  padding:10px;
   border:none;
-  border-radius:6px;
-  background:#00ff88;
+  border-radius:10px;
+  background:linear-gradient(90deg,#00ff88,#00c3ff);
+  font-weight:bold;
 }
 
 .game{
-  background:#1a1a1a;
-  padding:8px;
-  border-radius:8px;
-  margin-bottom:8px;
-  font-size:12px;
+  background:#1e1e1e;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:10px;
+  box-shadow:0 0 10px rgba(0,255,136,0.2);
 }
 
 .pick{
-  margin-top:4px;
+  margin-top:6px;
   color:#ccc;
+  font-size:13px;
 }
 
 .top-card{
-  background:#113322;
-  border:2px solid #00ff88;
-  padding:8px;
-  border-radius:8px;
-  margin-bottom:8px;
-  font-size:12px;
+  background:linear-gradient(135deg,#002f1f,#003b4f);
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:10px;
+  border:1px solid #00ff88;
 }
