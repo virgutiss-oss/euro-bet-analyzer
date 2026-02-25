@@ -1,47 +1,55 @@
 const API_KEY = "b2e1590b865bd748e670388b64aad940";
-const BASE="https://api.the-odds-api.com/v4/sports/";
+const BASE = "https://api.the-odds-api.com/v4/sports/";
 
-let MODE="safe";
-let minOdds=1.40;
-let maxOdds=1.90;
+const SPORTS = {
+  soccer: [
+    "soccer_epl",
+    "soccer_spain_la_liga",
+    "soccer_germany_bundesliga",
+    "soccer_italy_serie_a",
+    "soccer_france_ligue_one",
+    "soccer_uefa_champs_league"
+  ],
+  basketball: [
+    "basketball_nba",
+    "basketball_euroleague",
+    "basketball_spain_acb",
+    "basketball_germany_bbl"
+  ],
+  icehockey: [
+    "icehockey_nhl",
+    "icehockey_sweden_allsvenskan",
+    "icehockey_finland_liiga"
+  ]
+};
 
-function setMode(mode){
-  MODE=mode;
+async function loadSport(sport){
 
-  if(mode==="safe"){
-    minOdds=1.40;
-    maxOdds=1.90;
-    document.getElementById("minConf").value=65;
-    document.getElementById("safeBtn").classList.add("active");
-    document.getElementById("aggBtn").classList.remove("active");
-  }else{
-    minOdds=1.60;
-    maxOdds=3.50;
-    document.getElementById("minConf").value=55;
-    document.getElementById("aggBtn").classList.add("active");
-    document.getElementById("safeBtn").classList.remove("active");
+  document.getElementById("sportTitle").innerText="Kraunama...";
+
+  let allGames=[];
+
+  for(const league of SPORTS[sport]){
+    const url=`${BASE}${league}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`;
+    const res=await fetch(url);
+    const data=await res.json();
+    allGames=allGames.concat(data);
   }
+
+  analyzeGames(allGames,sport);
 }
 
-async function loadOdds(){
-
-  const sport=document.getElementById("sport").value;
-  const minEv=parseFloat(document.getElementById("minEv").value)/100;
-  const minBooks=parseInt(document.getElementById("minBooks").value);
-  const minConf=parseFloat(document.getElementById("minConf").value)/100;
-
-  const url=`${BASE}${sport}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`;
-  const res=await fetch(url);
-  const data=await res.json();
+function analyzeGames(games,sport){
 
   document.getElementById("games").innerHTML="";
   document.getElementById("top3").innerHTML="";
+  document.getElementById("sportTitle").innerText="Geriausi šiandien";
 
   let today=[];
 
-  data.forEach(game=>{
+  games.forEach(game=>{
 
-    if(!game.bookmakers || game.bookmakers.length<minBooks) return;
+    if(!game.bookmakers || game.bookmakers.length<3) return;
 
     let best=null;
 
@@ -49,27 +57,24 @@ async function loadOdds(){
       book.markets.forEach(market=>{
         market.outcomes.forEach(outcome=>{
 
-          if(!outcome.price) return;
-          if(outcome.price<minOdds || outcome.price>maxOdds) return;
+          if(!outcome.price || outcome.price<1.40 || outcome.price>3.00) return;
 
           const prices=collectPrices(game,market.key,outcome.name,outcome.point);
-          if(prices.length<minBooks) return;
+          if(prices.length<3) return;
 
           const fairProb=removeMargin(prices);
           const ev=(fairProb*outcome.price)-1;
           const variance=getVariance(prices);
-          const conf=(1-variance)*fairProb;
 
-          if(ev>minEv && conf>minConf){
+          if(ev>0.03 && variance<0.15){
             if(!best || ev>best.ev){
               best={
                 match:`${game.home_team} vs ${game.away_team}`,
-                type:market.key==="h2h"?"WIN":"TOTAL",
+                type:market.key==="h2h"?"WIN/LOSE":"OVER/UNDER",
                 pick:outcome.name,
                 line:outcome.point||"",
                 odds:outcome.price.toFixed(2),
-                ev,
-                conf
+                ev
               };
             }
           }
@@ -81,18 +86,15 @@ async function loadOdds(){
     if(best){
       document.getElementById("games").innerHTML+=`
       <div class="game">
-        <b>${best.match}</b>
+        <div class="match">${best.match}</div>
         <div class="pick">
           ${best.type} – ${best.pick} ${best.line}
           <br>
-          Odds ${best.odds}
-          | EV ${(best.ev*100).toFixed(2)}%
-          | Conf ${(best.conf*100).toFixed(0)}%
+          Odds ${best.odds} | Value ${(best.ev*100).toFixed(2)}%
         </div>
       </div>
       `;
-
-      if(isToday(game.commence_time)) today.push(best);
+      today.push(best);
     }
 
   });
@@ -102,7 +104,7 @@ async function loadOdds(){
     <div class="top-card">
       <b>${p.match}</b><br>
       ${p.type} – ${p.pick} ${p.line}<br>
-      Odds ${p.odds} | EV ${(p.ev*100).toFixed(2)}% | Conf ${(p.conf*100).toFixed(0)}%
+      Odds ${p.odds} | Value ${(p.ev*100).toFixed(2)}%
     </div>
     `;
   });
@@ -131,10 +133,4 @@ function removeMargin(prices){
 function getVariance(arr){
   const avg=arr.reduce((a,b)=>a+b,0)/arr.length;
   return Math.sqrt(arr.map(x=>(x-avg)**2).reduce((a,b)=>a+b)/arr.length);
-}
-
-function isToday(dateStr){
-  const d=new Date(dateStr);
-  const t=new Date();
-  return d.toDateString()===t.toDateString();
 }
