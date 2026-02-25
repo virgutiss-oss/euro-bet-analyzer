@@ -1,136 +1,113 @@
 const API_KEY = "b2e1590b865bd748e670388b64aad940";
-const BASE = "https://api.the-odds-api.com/v4/sports/";
 
-let selectedLeague = null;
+const BASE="https://api.the-odds-api.com/v4/sports/";
 
-function selectSport(sport){
+let MODE="safe";
+let minOdds=1.40;
+let maxOdds=1.90;
 
-  const leaguesDiv = document.getElementById("leagues");
+function setMode(mode){
+  MODE=mode;
 
-  if(sport==="soccer"){
-    leaguesDiv.innerHTML=`
-      <button onclick="setLeague('soccer_epl')">EPL</button>
-      <button onclick="setLeague('soccer_spain_la_liga')">La Liga</button>
-      <button onclick="setLeague('soccer_uefa_champs_league')">Champions League</button>
-    `;
+  if(mode==="safe"){
+    minOdds=1.40;
+    maxOdds=1.90;
+    document.getElementById("minConf").value=65;
+    document.getElementById("safeBtn").classList.add("active");
+    document.getElementById("aggBtn").classList.remove("active");
+  }else{
+    minOdds=1.60;
+    maxOdds=3.50;
+    document.getElementById("minConf").value=55;
+    document.getElementById("aggBtn").classList.add("active");
+    document.getElementById("safeBtn").classList.remove("active");
   }
-
-  if(sport==="basketball"){
-    leaguesDiv.innerHTML=`
-      <button onclick="setLeague('basketball_nba')">NBA</button>
-      <button onclick="setLeague('basketball_euroleague')">EuroLeague</button>
-    `;
-  }
-
-  if(sport==="icehockey"){
-    leaguesDiv.innerHTML=`
-      <button onclick="setLeague('icehockey_nhl')">NHL</button>
-    `;
-  }
-
-}
-
-function setLeague(key){
-  selectedLeague = key;
 }
 
 async function loadOdds(){
 
-  if(!selectedLeague){
-    alert("Pasirink lygą");
-    return;
-  }
+  const sport=document.getElementById("sport").value;
+  const minEv=parseFloat(document.getElementById("minEv").value)/100;
+  const minBooks=parseInt(document.getElementById("minBooks").value);
+  const minConf=parseFloat(document.getElementById("minConf").value)/100;
 
-  const minEv = parseFloat(document.getElementById("minEv").value)/100;
-  const minBooks = parseInt(document.getElementById("minBooks").value);
-  const maxOdds = parseFloat(document.getElementById("maxOdds").value);
-  const minConf = parseFloat(document.getElementById("minConf").value)/100;
+  const url=`${BASE}${sport}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`;
+  const res=await fetch(url);
+  const data=await res.json();
 
-  const url = `${BASE}${selectedLeague}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`;
-
-  const res = await fetch(url);
-  const data = await res.json();
+  document.getElementById("games").innerHTML="";
+  document.getElementById("top3").innerHTML="";
 
   let today=[];
-  const gamesDiv=document.getElementById("games");
-  const topDiv=document.getElementById("top3");
-
-  gamesDiv.innerHTML="";
-  topDiv.innerHTML="";
 
   data.forEach(game=>{
 
-    const best=getBestPick(game,minEv,minBooks,maxOdds,minConf);
-    if(!best) return;
+    if(!game.bookmakers || game.bookmakers.length<minBooks) return;
 
-    gamesDiv.innerHTML+=`
+    let best=null;
+
+    game.bookmakers.forEach(book=>{
+      book.markets.forEach(market=>{
+        market.outcomes.forEach(outcome=>{
+
+          if(!outcome.price) return;
+          if(outcome.price<minOdds || outcome.price>maxOdds) return;
+
+          const prices=collectPrices(game,market.key,outcome.name,outcome.point);
+          if(prices.length<minBooks) return;
+
+          const fairProb=removeMargin(prices);
+          const ev=(fairProb*outcome.price)-1;
+          const variance=getVariance(prices);
+          const conf=(1-variance)*fairProb;
+
+          if(ev>minEv && conf>minConf){
+            if(!best || ev>best.ev){
+              best={
+                match:`${game.home_team} vs ${game.away_team}`,
+                type:market.key==="h2h"?"WIN":"TOTAL",
+                pick:outcome.name,
+                line:outcome.point||"",
+                odds:outcome.price.toFixed(2),
+                ev,
+                conf
+              };
+            }
+          }
+
+        });
+      });
+    });
+
+    if(best){
+      document.getElementById("games").innerHTML+=`
       <div class="game">
-        <b>${game.home_team} vs ${game.away_team}</b>
+        <b>${best.match}</b>
         <div class="pick">
-          ${best.type} – ${best.pick}${best.line?" "+best.line:""}
-          @ ${best.odds}
+          ${best.type} – ${best.pick} ${best.line}
+          <br>
+          Odds ${best.odds}
           | EV ${(best.ev*100).toFixed(2)}%
           | Conf ${(best.conf*100).toFixed(0)}%
         </div>
       </div>
-    `;
+      `;
 
-    if(isToday(game.commence_time)) today.push(best);
+      if(isToday(game.commence_time)) today.push(best);
+    }
 
   });
 
   today.sort((a,b)=>b.ev-a.ev).slice(0,3).forEach(p=>{
-    topDiv.innerHTML+=`
-      <div class="top-card">
-        <b>${p.match}</b><br>
-        ${p.type} – ${p.pick}${p.line?" "+p.line:""}<br>
-        Odds ${p.odds} | EV ${(p.ev*100).toFixed(2)}% | Conf ${(p.conf*100).toFixed(0)}%
-      </div>
+    document.getElementById("top3").innerHTML+=`
+    <div class="top-card">
+      <b>${p.match}</b><br>
+      ${p.type} – ${p.pick} ${p.line}<br>
+      Odds ${p.odds} | EV ${(p.ev*100).toFixed(2)}% | Conf ${(p.conf*100).toFixed(0)}%
+    </div>
     `;
   });
 
-}
-
-function getBestPick(game,minEv,minBooks,maxOdds,minConf){
-
-  if(!game.bookmakers || game.bookmakers.length<minBooks) return null;
-
-  let best=null;
-
-  game.bookmakers.forEach(book=>{
-    book.markets.forEach(market=>{
-      market.outcomes.forEach(outcome=>{
-
-        if(!outcome.price || outcome.price>maxOdds) return;
-
-        const prices=collectPrices(game,market.key,outcome.name,outcome.point);
-        if(prices.length<minBooks) return;
-
-        const fairProb=removeMargin(prices);
-        const ev=(fairProb*outcome.price)-1;
-
-        const variance=getVariance(prices);
-        const conf=(1-variance)*fairProb;
-
-        if(ev>minEv && conf>minConf){
-          if(!best || ev>best.ev){
-            best={
-              match:`${game.home_team} vs ${game.away_team}`,
-              type:market.key==="h2h"?"WIN":"TOTAL",
-              pick:outcome.name,
-              line:outcome.point||null,
-              odds:outcome.price.toFixed(2),
-              ev,
-              conf
-            };
-          }
-        }
-
-      });
-    });
-  });
-
-  return best;
 }
 
 function collectPrices(game,key,name,point){
