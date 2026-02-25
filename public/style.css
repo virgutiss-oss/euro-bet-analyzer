@@ -16,13 +16,6 @@ h1 {
   margin-bottom: 20px;
 }
 
-.top-controls {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
 .sports-buttons button {
   padding: 14px 22px;
   margin: 6px;
@@ -36,20 +29,6 @@ h1 {
 
 .sports-buttons button:hover {
   background: #2b2f3a;
-}
-
-.filters {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.filters input {
-  width: 60px;
-  padding: 6px;
-  border-radius: 6px;
-  border: none;
-  text-align: center;
 }
 
 #leagues button {
@@ -70,17 +49,17 @@ h1 {
   border-radius: 10px;
 }
 
+.pick {
+  margin-top: 6px;
+  padding: 8px;
+  background: #222;
+  border-radius: 6px;
+}
+
 .top-card {
   background: #16261c;
   padding: 18px;
   margin: 12px 0;
   border-radius: 10px;
   border: 3px solid #00ff88;
-}
-
-.pick {
-  margin-top: 6px;
-  padding: 6px;
-  background: #222;
-  border-radius: 6px;
 }
