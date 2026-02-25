@@ -1,6 +1,4 @@
 const MAX_TOP = 3;
-const MIN_EDGE = 0.04;
-const SHARP_THRESHOLD = 0.6;
 
 // ===== SPORTS =====
 
@@ -34,17 +32,16 @@ async function loadOdds(sportKey) {
 
   const container = document.getElementById("odds");
   const topContainer = document.getElementById("top3");
+
   container.innerHTML = "Kraunama...";
   topContainer.innerHTML = "";
-
-  const minBooks = parseInt(document.getElementById("minBooks").value);
 
   const res = await fetch(`/api/odds?sport=${sportKey}`);
   const games = await res.json();
 
   container.innerHTML = "";
 
-  let todaySharp = [];
+  let todayPicks = [];
 
   games.forEach(game => {
 
@@ -56,84 +53,57 @@ async function loadOdds(sportKey) {
       <p>📅 ${new Date(game.commence_time).toLocaleString()}</p>
     `;
 
-    // Sharp pick logika TOP 3
-    const sharpPick = findSharpPick(game, minBooks);
+    const bestWin = getBestMarket(game, "h2h");
+    const bestTotal = getBestMarket(game, "totals");
 
-    if (sharpPick) {
+    if (bestWin) {
       div.innerHTML += `
         <div class="pick">
-          <b>${sharpPick.type}</b> – ${sharpPick.pick}
-          (${sharpPick.odds}) | EV ${(sharpPick.ev*100).toFixed(2)}%
+          <b>WIN:</b> ${bestWin.name} @ ${bestWin.price}
         </div>
       `;
-      if (isToday(game.commence_time)) todaySharp.push(sharpPick);
+      if (isToday(game.commence_time)) todayPicks.push(buildTopPick(game, bestWin, "WIN"));
+    }
+
+    if (bestTotal) {
+      div.innerHTML += `
+        <div class="pick">
+          <b>O/U:</b> ${bestTotal.name} ${bestTotal.point || ""} @ ${bestTotal.price}
+        </div>
+      `;
+      if (isToday(game.commence_time)) todayPicks.push(buildTopPick(game, bestTotal, "OVER/UNDER"));
     }
 
     container.appendChild(div);
   });
 
-  showTop3(todaySharp);
+  showTop3(todayPicks);
 }
 
-// ===== SHARP PICK LOGIC =====
+// ===== BEST MARKET (be sharp filtro) =====
 
-function findSharpPick(game, minBooks) {
+function getBestMarket(game, marketKey) {
 
-  if (!game.bookmakers || game.bookmakers.length < minBooks) return null;
+  if (!game.bookmakers) return null;
 
-  let outcomesMap = {};
+  let best = null;
 
   game.bookmakers.forEach(book => {
     book.markets.forEach(market => {
 
-      if (!["h2h","totals"].includes(market.key)) return;
+      if (market.key !== marketKey) return;
 
       market.outcomes.forEach(outcome => {
 
-        if (!outcome.price || outcome.price > 4.5) return;
+        if (!outcome.price) return;
 
-        const key = market.key + "_" + outcome.name;
-
-        if (!outcomesMap[key]) {
-          outcomesMap[key] = {
-            count: 0,
-            totalOdds: 0,
-            type: market.key === "h2h" ? "WIN" : "OVER/UNDER",
-            pick: outcome.name
-          };
+        if (!best || outcome.price > best.price) {
+          best = outcome;
         }
 
-        outcomesMap[key].count++;
-        outcomesMap[key].totalOdds += outcome.price;
       });
 
     });
-  });
-
-  let best = null;
-
-  Object.values(outcomesMap).forEach(o => {
-
-    const ratio = o.count / game.bookmakers.length;
-    if (ratio < SHARP_THRESHOLD) return;
-
-    const avgOdds = o.totalOdds / o.count;
-    const implied = 1 / avgOdds;
-    const ev = (implied * avgOdds) - 1;
-
-    if (ev > MIN_EDGE) {
-      if (!best || ev > best.ev) {
-        best = {
-          match: `${game.home_team} vs ${game.away_team}`,
-          date: game.commence_time,
-          type: o.type,
-          pick: o.pick,
-          odds: avgOdds.toFixed(2),
-          ev
-        };
-      }
-    }
-
   });
 
   return best;
@@ -141,24 +111,41 @@ function findSharpPick(game, minBooks) {
 
 // ===== TOP 3 =====
 
+function buildTopPick(game, outcome, type) {
+
+  const implied = 1 / outcome.price;
+  const ev = (implied * outcome.price) - 1;
+
+  return {
+    match: `${game.home_team} vs ${game.away_team}`,
+    date: game.commence_time,
+    type,
+    pick: outcome.name,
+    point: outcome.point,
+    odds: outcome.price,
+    ev
+  };
+}
+
 function showTop3(picks) {
 
   if (picks.length === 0) return;
 
   const container = document.getElementById("top3");
 
-  const top = picks.sort((a,b)=>b.ev-a.ev).slice(0, MAX_TOP);
+  const top = picks
+    .sort((a,b)=>b.odds-a.odds)
+    .slice(0, MAX_TOP);
 
-  container.innerHTML = `<h2>🔥 TODAY SHARP TOP 3</h2>`;
+  container.innerHTML = `<h2>🔥 TODAY TOP 3</h2>`;
 
   top.forEach(p => {
     container.innerHTML += `
       <div class="top-card">
         <h3>${p.match}</h3>
         <p>📅 ${new Date(p.date).toLocaleString()}</p>
-        <p><b>${p.type}</b> – ${p.pick}</p>
+        <p><b>${p.type}</b> – ${p.pick} ${p.point || ""}</p>
         <p>Odds: ${p.odds}</p>
-        <p>EV: ${(p.ev*100).toFixed(2)}%</p>
       </div>
     `;
   });
