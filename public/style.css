@@ -17,9 +17,9 @@ h1 {
 }
 
 .sports-buttons button {
-  padding: 14px 22px;
+  padding: 12px 18px;
   margin: 6px;
-  font-size: 16px;
+  font-size: 15px;
   border-radius: 8px;
   border: none;
   cursor: pointer;
@@ -27,39 +27,26 @@ h1 {
   color: white;
 }
 
-.sports-buttons button:hover {
-  background: #2b2f3a;
-}
-
-#leagues button {
-  padding: 12px 18px;
-  margin: 6px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  background: #22252d;
-  color: white;
-}
-
 .match-card {
   background: #1a1d24;
-  padding: 16px;
-  margin: 12px 0;
+  padding: 14px;
+  margin: 10px 0;
   border-radius: 10px;
 }
 
 .pick {
   margin-top: 6px;
-  padding: 8px;
+  padding: 6px;
   background: #222;
   border-radius: 6px;
+  font-size: 13px;   /* 👈 mažesnis šriftas */
 }
 
 .top-card {
   background: #16261c;
-  padding: 18px;
+  padding: 16px;
   margin: 12px 0;
   border-radius: 10px;
   border: 3px solid #00ff88;
+  font-size: 14px;
 }
