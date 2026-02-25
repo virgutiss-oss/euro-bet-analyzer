@@ -1,31 +1,37 @@
 <!DOCTYPE html>
-<html lang="lt">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Euro Bet Analyzer PRO</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<title>Sharp Betting Analyzer</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="container">
+<h1>🔥 Sharp Betting Analyzer</h1>
 
-    <h1>⚡ EURO BET ANALYZER PRO</h1>
+<div class="controls">
+<select id="sportSelect">
+  <option value="basketball_nba">NBA</option>
+  <option value="basketball_euroleague">EuroLeague</option>
+  <option value="basketball_eurocup">EuroCup</option>
+  <option value="soccer_epl">EPL</option>
+  <option value="soccer_spain_la_liga">La Liga</option>
+  <option value="soccer_uefa_champs_league">Champions League</option>
+  <option value="icehockey_nhl">NHL</option>
+</select>
 
-    <div class="sports-buttons">
-      <button onclick="showFootball()">⚽ Football</button>
-      <button onclick="showBasketball()">🏀 Basketball</button>
-      <button onclick="showHockey()">🏒 Hockey</button>
-    </div>
+<label>Min Bookmakers:</label>
+<input type="number" id="minBooks" value="3" min="1" max="10">
 
-    <div id="leagues"></div>
+<button onclick="loadOdds()">Load Games</button>
+</div>
 
-    <div id="top3"></div>
+<h2>🟢 TOP 3 TODAY</h2>
+<div id="top3"></div>
 
-    <div id="odds"></div>
+<h2>📅 All Matches</h2>
+<div id="games"></div>
 
-  </div>
-
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
