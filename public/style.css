@@ -1,68 +1,51 @@
-body{
-  background:#0f1115;
-  color:white;
-  font-family:-apple-system,BlinkMacSystemFont;
-  padding:15px;
+body {
+  margin: 0;
+  background: #0f172a;
+  font-family: Arial, sans-serif;
+  color: white;
 }
 
-h1{
-  text-align:center;
-  font-size:22px;
-  margin-bottom:20px;
-  background:linear-gradient(90deg,#00ff88,#00c3ff);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
+.container {
+  padding: 20px;
+  max-width: 900px;
+  margin: auto;
 }
 
-.sports{
-  display:flex;
-  gap:10px;
-  margin-bottom:20px;
+h1 {
+  text-align: center;
+  margin-bottom: 25px;
 }
 
-.sports button{
-  flex:1;
-  padding:12px;
-  border:none;
-  border-radius:12px;
-  background:#1f1f1f;
-  color:white;
-  font-weight:bold;
+.sports {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
-.sports button:active{
-  background:#00ff88;
-  color:black;
+button {
+  background: #1e293b;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
 }
 
-h2{
-  margin-top:10px;
-  font-size:16px;
-  color:#00ff88;
+button:hover {
+  background: #334155;
 }
 
-.game{
-  background:#1a1d23;
-  padding:12px;
-  border-radius:12px;
-  margin-bottom:12px;
-  box-shadow:0 0 12px rgba(0,255,136,0.15);
+.card {
+  background: #1e293b;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  font-size: 13px;
 }
 
-.match{
-  font-weight:bold;
-  margin-bottom:5px;
-}
-
-.pick{
-  font-size:13px;
-  color:#ccc;
-}
-
-.top-card{
-  background:linear-gradient(135deg,#003b2a,#002c45);
-  padding:12px;
-  border-radius:12px;
-  margin-bottom:10px;
-  border:1px solid #00ff88;
+.ev {
+  color: #22c55e;
+  font-weight: bold;
 }
