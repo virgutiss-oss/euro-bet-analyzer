@@ -3,14 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sharp Betting Analyzer</title>
+  <title>Sharp Betting Analyzer PRO</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <div class="container">
 
-    <h1>⚡ Sharp Betting Analyzer</h1>
+    <h1>⚡ Sharp Betting Analyzer PRO</h1>
+
+    <div class="top-controls">
+      <select id="mode">
+        <option value="safe">🟢 Safe Mode (1.40–1.90)</option>
+        <option value="aggressive">🔴 Aggressive Mode</option>
+      </select>
+
+      <input type="number" id="minEV" placeholder="Min EV %" value="3" />
+    </div>
 
     <div class="sports">
       <button onclick="loadSport('soccer')">⚽ Futbolas</button>
@@ -19,7 +28,6 @@
     </div>
 
     <div id="loading"></div>
-
     <div id="results"></div>
 
   </div>
