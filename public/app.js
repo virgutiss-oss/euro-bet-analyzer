@@ -1,9 +1,21 @@
 const API_KEY = "6b0664072d64c0e45639f1c39f2c994f";
 
+// KELIOS LYGOS KIEKVIENAM SPORTUI
 const SPORT_MAP = {
-  soccer: "soccer_epl",
-  basketball: "basketball_nba",
-  icehockey: "icehockey_nhl"
+  soccer: [
+    "soccer_epl",
+    "soccer_spain_la_liga",
+    "soccer_germany_bundesliga",
+    "soccer_italy_serie_a",
+    "soccer_france_ligue_one"
+  ],
+  basketball: [
+    "basketball_nba",
+    "basketball_euroleague"
+  ],
+  icehockey: [
+    "icehockey_nhl"
+  ]
 };
 
 async function loadSport(sport) {
@@ -17,25 +29,35 @@ async function loadSport(sport) {
   resultsDiv.innerHTML = "";
   loadingDiv.innerHTML = "Kraunama...";
 
-  const league = SPORT_MAP[sport];
+  const leagues = SPORT_MAP[sport];
+  let allGames = [];
 
   try {
 
-    const response = await fetch(
-      `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`
-    );
+    // KRAUNAM VISAS LYGAS
+    for (let league of leagues) {
 
-    const data = await response.json();
+      const response = await fetch(
+        `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`
+      );
+
+      const data = await response.json();
+
+      if (Array.isArray(data)) {
+        allGames = allGames.concat(data);
+      }
+    }
+
     loadingDiv.innerHTML = "";
 
     const picks = [];
 
-    data.forEach(game => {
+    allGames.forEach(game => {
+
+      if (!game.bookmakers?.length) return;
 
       const home = game.home_team;
       const away = game.away_team;
-
-      if (!game.bookmakers.length) return;
 
       const markets = game.bookmakers[0].markets;
 
@@ -45,17 +67,18 @@ async function loadSport(sport) {
 
           const odds = outcome.price;
 
+          // MODE filtrai
           if (mode === "safe" && (odds < 1.4 || odds > 1.9)) return;
           if (mode === "aggressive" && odds < 2.0) return;
 
           const implied = 1 / odds;
 
-          // Dinaminis modelis
+          // Patobulintas modelis
           let modelProb = implied;
 
-          if (odds < 1.6) modelProb *= 1.06;
-          else if (odds < 2.0) modelProb *= 1.05;
-          else modelProb *= 1.08;
+          if (odds < 1.6) modelProb *= 1.05;
+          else if (odds < 2.2) modelProb *= 1.07;
+          else modelProb *= 1.10;
 
           const ev = (modelProb * odds - 1) * 100;
 
@@ -63,7 +86,9 @@ async function loadSport(sport) {
 
             picks.push({
               match: `${home} vs ${away}`,
-              market: market.key === "h2h" ? "Win/Lose" : `Totals (${outcome.point || ""})`,
+              market: market.key === "h2h" 
+                ? "Win/Lose"
+                : `Over/Under (${outcome.point || ""})`,
               selection: outcome.name,
               odds,
               ev: ev.toFixed(2)
@@ -77,9 +102,10 @@ async function loadSport(sport) {
 
     });
 
+    // Surūšiuojam geriausius
     picks
       .sort((a, b) => b.ev - a.ev)
-      .slice(0, 5)
+      .slice(0, 10)
       .forEach(p => {
 
         resultsDiv.innerHTML += `
@@ -90,8 +116,11 @@ async function loadSport(sport) {
             <div class="ev">EV: +${p.ev}%</div>
           </div>
         `;
-
       });
+
+    if (picks.length === 0) {
+      resultsDiv.innerHTML = "Nerasta value statymų su šiais filtrais.";
+    }
 
   } catch (err) {
     loadingDiv.innerHTML = "";
