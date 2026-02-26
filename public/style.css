@@ -1,18 +1,54 @@
-.top-controls {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 15px;
-}
-
-select, input {
-  padding: 8px;
-  border-radius: 6px;
-  border: none;
-  background: #1e293b;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  background: #0f172a;
   color: white;
 }
 
+header {
+  text-align: center;
+  padding: 20px;
+  background: #111827;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.sports {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+}
+
+button {
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: none;
+  background: #1e293b;
+  color: white;
+  font-size: 16px;
+}
+
+button:active {
+  background: #334155;
+}
+
+#results {
+  padding: 20px;
+}
+
 .card {
-  border-left: 4px solid #22c55e;
+  background: #1e293b;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 12px;
+}
+
+.ev-positive {
+  color: #22c55e;
+  font-weight: bold;
+}
+
+.hidden {
+  display: none;
 }
