@@ -1,4 +1,4 @@
-const API_KEY = "b2e1590b865bd748e670388b64aad940";
+const API_KEY = "6b0664072d64c0e45639f1c39f2c994f";
 const BASE = "https://api.the-odds-api.com/v4/sports/";
 
 const SPORTS = {
