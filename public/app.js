@@ -1,121 +1,104 @@
-const API_KEY = "6b0664072d64c0e45639f1c39f2c994f";
+const API = "https://www.thesportsdb.com/api/v1/json/1/";
 
-const sportKeys = {
-  soccer: "soccer_epl,soccer_spain_la_liga,soccer_germany_bundesliga,soccer_italy_serie_a,soccer_france_ligue_one,soccer_uefa_champs_league",
-  basketball: "basketball_nba,basketball_euroleague",
-  icehockey: "icehockey_nhl,icehockey_sweden_shl"
-};
+const matchesContainer = document.getElementById("matches");
+const loadBtn = document.getElementById("loadBtn");
+const leagueSelect = document.getElementById("leagueSelect");
 
-async function loadSport(sport) {
-  document.getElementById("results").innerHTML = "";
-  document.getElementById("loading").classList.remove("hidden");
+loadBtn.addEventListener("click", loadMatches);
 
-  const today = new Date().toISOString().split("T")[0];
+async function loadMatches() {
+    matchesContainer.innerHTML = "Loading...";
 
-  const url = `https://api.the-odds-api.com/v4/sports/${sportKeys[sport]}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&dateFormat=iso&apiKey=${API_KEY}`;
+    const leagueId = leagueSelect.value;
+    const today = new Date().toISOString().split("T")[0];
 
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
+    try {
+        const res = await fetch(`${API}eventsday.php?d=${today}&l=${leagueId}`);
+        const data = await res.json();
 
-    const todaysGames = data.filter(game => 
-      game.commence_time.startsWith(today)
-    );
+        if (!data.events) {
+            matchesContainer.innerHTML = "No matches today.";
+            return;
+        }
 
-    analyzeGames(todaysGames);
+        renderMatches(data.events);
 
-  } catch (err) {
-    document.getElementById("results").innerHTML = "API klaida.";
-  }
-
-  document.getElementById("loading").classList.add("hidden");
+    } catch (err) {
+        matchesContainer.innerHTML = "Error loading matches.";
+    }
 }
 
-function analyzeGames(games) {
-  let bestWin = null;
-  let bestTotal = null;
+function renderMatches(events) {
+    matchesContainer.innerHTML = "";
 
-  games.forEach(game => {
-    if (!game.bookmakers.length) return;
+    events.forEach(event => {
 
-    const markets = game.bookmakers[0].markets;
+        const homeProb = randomProb();
+        const drawProb = randomProb();
+        const awayProb = 100 - homeProb - drawProb;
 
-    const h2h = markets.find(m => m.key === "h2h");
-    const totals = markets.find(m => m.key === "totals");
+        const overProb = 55;
 
-    if (h2h) {
-      const outcomes = h2h.outcomes;
+        const card = document.createElement("div");
+        card.className = "card";
 
-      const probs = outcomes.map(o => 1 / o.price);
-      const sum = probs.reduce((a,b)=>a+b,0);
+        card.innerHTML = `
+            <h3>${event.strHomeTeam} vs ${event.strAwayTeam}</h3>
+            <div class="model">
+                Home: ${homeProb}% |
+                Draw: ${drawProb}% |
+                Away: ${awayProb}% <br>
+                Over 2.5: ${overProb}%
+            </div>
 
-      outcomes.forEach((o,i)=>{
-        const realProb = probs[i]/sum;
-        const ev = (realProb * o.price - 1) * 100;
+            <div class="odds">
+                H <input type="number" step="0.01" class="odd-home">
+                D <input type="number" step="0.01" class="odd-draw">
+                A <input type="number" step="0.01" class="odd-away">
+                O2.5 <input type="number" step="0.01" class="odd-over">
+                <button class="calcBtn">Calc</button>
+            </div>
 
-        if (!bestWin || ev > bestWin.ev) {
-          bestWin = {
-            league: game.sport_title,
-            teams: game.home_team + " vs " + game.away_team,
-            pick: o.name,
-            odds: o.price,
-            ev: ev.toFixed(2),
-            time: new Date(game.commence_time).toLocaleTimeString()
-          };
-        }
-      });
-    }
+            <div class="ev"></div>
+        `;
 
-    if (totals) {
-      totals.outcomes.forEach(o=>{
-        const ev = (0.5 * o.price - 1) * 100; // paprastas modelis
+        card.querySelector(".calcBtn").addEventListener("click", () => {
+            calculateEV(card, homeProb, drawProb, awayProb, overProb);
+        });
 
-        if (!bestTotal || ev > bestTotal.ev) {
-          bestTotal = {
-            league: game.sport_title,
-            teams: game.home_team + " vs " + game.away_team,
-            pick: o.name + " " + o.point,
-            odds: o.price,
-            ev: ev.toFixed(2),
-            time: new Date(game.commence_time).toLocaleTimeString()
-          };
-        }
-      });
-    }
-
-  });
-
-  renderResults(bestWin, bestTotal);
+        matchesContainer.appendChild(card);
+    });
 }
 
-function renderResults(win, total) {
-  const results = document.getElementById("results");
+function calculateEV(card, homeP, drawP, awayP, overP) {
+    const homeOdd = parseFloat(card.querySelector(".odd-home").value);
+    const drawOdd = parseFloat(card.querySelector(".odd-draw").value);
+    const awayOdd = parseFloat(card.querySelector(".odd-away").value);
+    const overOdd = parseFloat(card.querySelector(".odd-over").value);
 
-  if (win) {
-    results.innerHTML += `
-      <div class="card">
-        <h3>Geriausias Win/Lose</h3>
-        <p>${win.league}</p>
-        <p>${win.teams}</p>
-        <p>Pick: ${win.pick}</p>
-        <p>Kof: ${win.odds}</p>
-        <p class="ev-positive">EV: ${win.ev}%</p>
-        <p>Laikas: ${win.time}</p>
-      </div>
-    `;
-  }
+    let output = "";
 
-  if (total) {
-    results.innerHTML += `
-      <div class="card">
-        <h3>Geriausias Over/Under</h3>
-        <p>${total.league}</p>
-        <p>${total.teams}</p>
-        <p>Pick: ${total.pick}</p>
-        <p>Kof: ${total.odds}</p>
-        <p class="ev-positive">EV: ${total.ev}%</p>
-        <p>Laikas: ${total.time}</p>
-      </div>
-    `;
-  }
+    if (homeOdd)
+        output += formatEV("Home", homeP, homeOdd);
+
+    if (drawOdd)
+        output += formatEV("Draw", drawP, drawOdd);
+
+    if (awayOdd)
+        output += formatEV("Away", awayP, awayOdd);
+
+    if (overOdd)
+        output += formatEV("Over 2.5", overP, overOdd);
+
+    card.querySelector(".ev").innerHTML = output;
+}
+
+function formatEV(name, prob, odd) {
+    const ev = (prob / 100 * odd - 1) * 100;
+    const className = ev > 0 ? "positive" : "negative";
+    return `<div class="${className}">${name} EV: ${ev.toFixed(2)}%</div>`;
+}
+
+function randomProb() {
+    return Math.floor(Math.random() * 40) + 20;
 }
