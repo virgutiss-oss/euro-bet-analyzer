@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/odds.js": {
-      "maxDuration": 10
-    }
-  }
-}
