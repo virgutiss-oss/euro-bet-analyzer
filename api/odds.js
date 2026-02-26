@@ -1,15 +1,14 @@
 export default async function handler(req, res) {
 
-  const API_KEY = process.env.ODDS_API_KEY;
+  const { sport } = req.query;
 
-  const sport = req.query.sport;
-
-  const LEAGUES = {
+  const SPORT_MAP = {
     soccer: [
       "soccer_epl",
       "soccer_spain_la_liga",
       "soccer_germany_bundesliga",
-      "soccer_italy_serie_a"
+      "soccer_italy_serie_a",
+      "soccer_uefa_champs_league"
     ],
     basketball: [
       "basketball_nba",
@@ -20,23 +19,36 @@ export default async function handler(req, res) {
     ]
   };
 
-  if(!LEAGUES[sport]){
-    return res.status(400).json({error:"Wrong sport"});
+  if (!SPORT_MAP[sport]) {
+    return res.status(400).json({ error: "Wrong sport key" });
   }
 
-  let allGames=[];
+  try {
 
-  for(const league of LEAGUES[sport]){
+    const API_KEY = process.env.ODDS_API_KEY;
 
-    const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals`;
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if(Array.isArray(data)){
-      allGames = allGames.concat(data);
+    if (!API_KEY) {
+      return res.status(500).json({ error: "Missing API KEY" });
     }
-  }
 
-  res.status(200).json(allGames);
+    let allGames = [];
+
+    for (let league of SPORT_MAP[sport]) {
+
+      const response = await fetch(
+        `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`
+      );
+
+      const data = await response.json();
+
+      if (Array.isArray(data)) {
+        allGames = [...allGames, ...data];
+      }
+    }
+
+    res.status(200).json(allGames);
+
+  } catch (error) {
+    res.status(500).json({ error: "API fetch failed", details: error.message });
+  }
 }
