@@ -1,37 +1,27 @@
 <!DOCTYPE html>
 <html lang="lt">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sharp Betting Analyzer PRO</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sharp Betting Analyzer</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="container">
+<header>
+  <h1>Sharp Betting Analyzer</h1>
+</header>
 
-    <h1>⚡ Sharp Betting Analyzer PRO</h1>
+<section class="sports">
+  <button onclick="loadSport('soccer')">⚽ Futbolas</button>
+  <button onclick="loadSport('basketball')">🏀 Krepšinis</button>
+  <button onclick="loadSport('icehockey')">🏒 Ledo ritulys</button>
+</section>
 
-    <div class="top-controls">
-      <select id="mode">
-        <option value="safe">🟢 Safe Mode (1.40–1.90)</option>
-        <option value="aggressive">🔴 Aggressive Mode</option>
-      </select>
+<section id="loading" class="hidden">Kraunama...</section>
 
-      <input type="number" id="minEV" placeholder="Min EV %" value="3" />
-    </div>
+<section id="results"></section>
 
-    <div class="sports">
-      <button onclick="loadSport('soccer')">⚽ Futbolas</button>
-      <button onclick="loadSport('basketball')">🏀 Krepšinis</button>
-      <button onclick="loadSport('icehockey')">🏒 Ledo ritulys</button>
-    </div>
-
-    <div id="loading"></div>
-    <div id="results"></div>
-
-  </div>
-
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
