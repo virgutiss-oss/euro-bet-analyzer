@@ -7,8 +7,7 @@ export default async function handler(req, res) {
       "soccer_epl",
       "soccer_spain_la_liga",
       "soccer_germany_bundesliga",
-      "soccer_italy_serie_a",
-      "soccer_uefa_champs_league"
+      "soccer_italy_serie_a"
     ],
     basketball: [
       "basketball_nba",
@@ -49,6 +48,6 @@ export default async function handler(req, res) {
     res.status(200).json(allGames);
 
   } catch (error) {
-    res.status(500).json({ error: "API fetch failed", details: error.message });
+    res.status(500).json({ error: "API fetch failed" });
   }
 }
