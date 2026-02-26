@@ -1,51 +1,18 @@
-body {
-  margin: 0;
-  background: #0f172a;
-  font-family: Arial, sans-serif;
-  color: white;
-}
-
-.container {
-  padding: 20px;
-  max-width: 900px;
-  margin: auto;
-}
-
-h1 {
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-.sports {
+.top-controls {
   display: flex;
   gap: 10px;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
-button {
-  background: #1e293b;
+select, input {
+  padding: 8px;
+  border-radius: 6px;
   border: none;
-  padding: 10px 15px;
-  border-radius: 8px;
+  background: #1e293b;
   color: white;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-button:hover {
-  background: #334155;
 }
 
 .card {
-  background: #1e293b;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.ev {
-  color: #22c55e;
-  font-weight: bold;
+  border-left: 4px solid #22c55e;
 }
