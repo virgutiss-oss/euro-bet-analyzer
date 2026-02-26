@@ -11,6 +11,9 @@ async function loadSport(sport) {
   const resultsDiv = document.getElementById("results");
   const loadingDiv = document.getElementById("loading");
 
+  const mode = document.getElementById("mode").value;
+  const minEV = parseFloat(document.getElementById("minEV").value);
+
   resultsDiv.innerHTML = "";
   loadingDiv.innerHTML = "Kraunama...";
 
@@ -23,15 +26,9 @@ async function loadSport(sport) {
     );
 
     const data = await response.json();
-
     loadingDiv.innerHTML = "";
 
-    if (!Array.isArray(data)) {
-      resultsDiv.innerHTML = "API klaida arba limitas.";
-      return;
-    }
-
-    const games = [];
+    const picks = [];
 
     data.forEach(game => {
 
@@ -47,18 +44,31 @@ async function loadSport(sport) {
         market.outcomes.forEach(outcome => {
 
           const odds = outcome.price;
+
+          if (mode === "safe" && (odds < 1.4 || odds > 1.9)) return;
+          if (mode === "aggressive" && odds < 2.0) return;
+
           const implied = 1 / odds;
-          const modelProb = implied * 1.05; // paprastas +5% modelis
+
+          // Dinaminis modelis
+          let modelProb = implied;
+
+          if (odds < 1.6) modelProb *= 1.06;
+          else if (odds < 2.0) modelProb *= 1.05;
+          else modelProb *= 1.08;
+
           const ev = (modelProb * odds - 1) * 100;
 
-          if (ev > 2) {
-            games.push({
+          if (ev >= minEV) {
+
+            picks.push({
               match: `${home} vs ${away}`,
-              market: market.key,
+              market: market.key === "h2h" ? "Win/Lose" : `Totals (${outcome.point || ""})`,
               selection: outcome.name,
               odds,
               ev: ev.toFixed(2)
             });
+
           }
 
         });
@@ -67,23 +77,24 @@ async function loadSport(sport) {
 
     });
 
-    games
+    picks
       .sort((a, b) => b.ev - a.ev)
-      .slice(0, 3)
-      .forEach(g => {
+      .slice(0, 5)
+      .forEach(p => {
+
         resultsDiv.innerHTML += `
           <div class="card">
-            <div><b>${g.match}</b></div>
-            <div>${g.market} - ${g.selection}</div>
-            <div>Kof: ${g.odds}</div>
-            <div class="ev">EV: +${g.ev}%</div>
+            <div><b>${p.match}</b></div>
+            <div>${p.market} - ${p.selection}</div>
+            <div>Kof: ${p.odds}</div>
+            <div class="ev">EV: +${p.ev}%</div>
           </div>
         `;
+
       });
 
-  } catch (error) {
+  } catch (err) {
     loadingDiv.innerHTML = "";
-    resultsDiv.innerHTML = "Nepavyko prisijungti prie API.";
+    resultsDiv.innerHTML = "API klaida arba limitas.";
   }
-
 }
