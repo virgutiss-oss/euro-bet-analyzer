@@ -1,26 +1,29 @@
 <!DOCTYPE html>
-<html>
+<html lang="lt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sharp Betting Analyzer</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sharp Betting Analyzer</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<h1>⚡ Sharp Betting Analyzer</h1>
+  <div class="container">
 
-<div class="sports">
-  <button onclick="loadSport('soccer')">⚽ Futbolas</button>
-  <button onclick="loadSport('basketball')">🏀 Krepšinis</button>
-  <button onclick="loadSport('icehockey')">🏒 Ledo ritulys</button>
-</div>
+    <h1>⚡ Sharp Betting Analyzer</h1>
 
-<h2 id="sportTitle"></h2>
+    <div class="sports">
+      <button onclick="loadSport('soccer')">⚽ Futbolas</button>
+      <button onclick="loadSport('basketball')">🏀 Krepšinis</button>
+      <button onclick="loadSport('icehockey')">🏒 Ledo ritulys</button>
+    </div>
 
-<div id="top3"></div>
-<div id="games"></div>
+    <div id="loading"></div>
 
-<script src="app.js"></script>
+    <div id="results"></div>
+
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
