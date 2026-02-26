@@ -1,153 +1,89 @@
-const SPORTS = {
-  soccer: [
-    "soccer_epl",
-    "soccer_spain_la_liga",
-    "soccer_germany_bundesliga",
-    "soccer_italy_serie_a",
-    "soccer_uefa_champs_league"
-  ],
-  basketball: [
-    "basketball_nba",
-    "basketball_euroleague",
-    "basketball_fiba_world_cup"
-  ],
-  icehockey: [
-    "icehockey_nhl",
-    "icehockey_sweden_hockey_league",
-    "icehockey_finland_liiga"
-  ]
+const API_KEY = "6b0664072d64c0e45639f1c39f2c994f";
+
+const SPORT_MAP = {
+  soccer: "soccer_epl",
+  basketball: "basketball_nba",
+  icehockey: "icehockey_nhl"
 };
 
-let currentFilter = {
-  minOdds: 1.40,
-  maxOdds: 2.50,
-  minEV: 3,
-  minConfidence: 55,
-  date: "today"
-};
+async function loadSport(sport) {
 
-async function loadSport(sport){
+  const resultsDiv = document.getElementById("results");
+  const loadingDiv = document.getElementById("loading");
 
-  document.getElementById("sportTitle").innerText="Kraunama...";
-  document.getElementById("games").innerHTML="";
-  document.getElementById("top3").innerHTML="";
+  resultsDiv.innerHTML = "";
+  loadingDiv.innerHTML = "Kraunama...";
 
-  const res = await fetch(`/api/odds?sport=${sport}`);
-  const games = await res.json();
+  const league = SPORT_MAP[sport];
 
-  if(!games || games.length===0){
-    document.getElementById("sportTitle").innerText="Nėra rungtynių";
-    return;
-  }
+  try {
 
-  analyzeGames(games);
-}
+    const response = await fetch(
+      `https://api.the-odds-api.com/v4/sports/${league}/odds/?regions=eu&markets=h2h,totals&oddsFormat=decimal&apiKey=${API_KEY}`
+    );
 
-function analyzeGames(games){
+    const data = await response.json();
 
-  let picks=[];
+    loadingDiv.innerHTML = "";
 
-  games.forEach(game=>{
+    if (!Array.isArray(data)) {
+      resultsDiv.innerHTML = "API klaida arba limitas.";
+      return;
+    }
 
-    const gameDate = new Date(game.commence_time);
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate()+1);
+    const games = [];
 
-    if(currentFilter.date==="today" &&
-       gameDate.toDateString()!==today.toDateString()) return;
+    data.forEach(game => {
 
-    if(currentFilter.date==="tomorrow" &&
-       gameDate.toDateString()!==tomorrow.toDateString()) return;
+      const home = game.home_team;
+      const away = game.away_team;
 
-    if(!game.bookmakers) return;
+      if (!game.bookmakers.length) return;
 
-    game.bookmakers.forEach(book=>{
+      const markets = game.bookmakers[0].markets;
 
-      book.markets.forEach(market=>{
+      markets.forEach(market => {
 
-        if(!["h2h","totals"].includes(market.key)) return;
+        market.outcomes.forEach(outcome => {
 
-        const outcomes = market.outcomes;
+          const odds = outcome.price;
+          const implied = 1 / odds;
+          const modelProb = implied * 1.05; // paprastas +5% modelis
+          const ev = (modelProb * odds - 1) * 100;
 
-        if(market.key==="h2h" && outcomes.length>=2){
+          if (ev > 2) {
+            games.push({
+              match: `${home} vs ${away}`,
+              market: market.key,
+              selection: outcome.name,
+              odds,
+              ev: ev.toFixed(2)
+            });
+          }
 
-          const p1 = 1/outcomes[0].price;
-          const p2 = 1/outcomes[1].price;
-
-          const margin = p1+p2;
-
-          const fair1 = p1/margin;
-          const fair2 = p2/margin;
-
-          addPick(game,market,outcomes[0],fair1,picks);
-          addPick(game,market,outcomes[1],fair2,picks);
-        }
-
-        if(market.key==="totals"){
-          outcomes.forEach(out=>{
-            const prob = 1/out.price;
-            addPick(game,market,out,prob,picks);
-          });
-        }
+        });
 
       });
 
     });
 
-  });
+    games
+      .sort((a, b) => b.ev - a.ev)
+      .slice(0, 3)
+      .forEach(g => {
+        resultsDiv.innerHTML += `
+          <div class="card">
+            <div><b>${g.match}</b></div>
+            <div>${g.market} - ${g.selection}</div>
+            <div>Kof: ${g.odds}</div>
+            <div class="ev">EV: +${g.ev}%</div>
+          </div>
+        `;
+      });
 
-  picks.sort((a,b)=>b.ev-a.ev);
+  } catch (error) {
+    loadingDiv.innerHTML = "";
+    resultsDiv.innerHTML = "Nepavyko prisijungti prie API.";
+  }
 
-  displayTop(picks.slice(0,3));
-  displayAll(picks);
-}
-
-function addPick(game,market,outcome,fairProb,picks){
-
-  const odds = outcome.price;
-  if(odds<currentFilter.minOdds || odds>currentFilter.maxOdds) return;
-
-  const ev = (fairProb*odds-1)*100;
-  const confidence = fairProb*100;
-
-  if(ev<currentFilter.minEV) return;
-  if(confidence<currentFilter.minConfidence) return;
-
-  picks.push({
-    match:`${game.home_team} vs ${game.away_team}`,
-    market:market.key,
-    pick:outcome.name,
-    line:outcome.point||"",
-    odds:odds.toFixed(2),
-    ev:ev.toFixed(2),
-    confidence:confidence.toFixed(1),
-    date:new Date(game.commence_time).toLocaleString()
-  });
-}
-
-function displayTop(picks){
-  document.getElementById("top3").innerHTML="<h3>🔥 Top Value</h3>";
-  picks.forEach(p=>{
-    document.getElementById("top3").innerHTML+=card(p,true);
-  });
-}
-
-function displayAll(picks){
-  document.getElementById("games").innerHTML="<h3>Visi atrinkti</h3>";
-  picks.forEach(p=>{
-    document.getElementById("games").innerHTML+=card(p,false);
-  });
-}
-
-function card(p,top){
-  return `
-  <div class="game ${top?'top-card':''}">
-    <div class="match">${p.match}</div>
-    <div>${p.market.toUpperCase()} – ${p.pick} ${p.line}</div>
-    <div>Odds ${p.odds}</div>
-    <div>EV ${p.ev}% | Confidence ${p.confidence}%</div>
-    <div style="font-size:12px;color:#aaa">${p.date}</div>
-  </div>
-  `;
 }
