@@ -1,36 +1,30 @@
 <!DOCTYPE html>
 <html lang="lt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bet Analyzer V2</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bet Analyzer V2</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header>
-    <h1>⚽ Football Bet Analyzer</h1>
+<h1>⚽ Football Bet Analyzer</h1>
 </header>
 
-<section class="controls">
-    <select id="leagueSelect">
-        <option value="4328">Premier League</option>
-        <option value="4335">La Liga</option>
-        <option value="4332">Serie A</option>
-        <option value="4331">Bundesliga</option>
-        <option value="4334">Ligue 1</option>
-        <option value="4570">A Lyga</option>
-    </select>
+<div class="controls">
+<select id="leagueSelect">
+<option value="4328">Premier League</option>
+<option value="4335">La Liga</option>
+<option value="4332">Serie A</option>
+<option value="4331">Bundesliga</option>
+<option value="4334">Ligue 1</option>
+</select>
 
-    <select id="sortSelect">
-        <option value="ev">Sort by EV</option>
-        <option value="prob">Sort by Probability</option>
-    </select>
+<button id="loadBtn">Load Matches</button>
+</div>
 
-    <button id="loadBtn">Load Matches</button>
-</section>
-
-<section id="matches"></section>
+<div id="matches"></div>
 
 <script src="app.js"></script>
 </body>
